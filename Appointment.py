@@ -1,84 +1,75 @@
 """Appointment Event Class for Distributed Systems Project 1."""
 
-def _validate_time(time):
-    """
-    Determine if time parameter provided is valid.
+from datetime import time
 
-    time parameter must be of the form [digit][digit]:[digit][digit]{am,pm}
-    where the hour must be <= 12 and the minutes must be in half hour
-    increments.
-
-    Raise ValueError otherwise.
-    """
-
-    #enforce start and end times as strings
-    if not isinstance(time, str):
+def _parse_time(time_string):
+    """Return a time object from given string or raise exception."""
+    #enforce string type
+    if not isinstance(time_string, str):
         raise TypeError("time parameters must be of type string.")
 
     #regex to determine if times provided are in correct format,
-    #i.e., [digit][digit]:[digit][digit]
+    #i.e., [digit][digit]:[digit][digit](am|pm)
     import re
-    pattern = r"\d\d:\d\d(am|pm)"
-    pattern2 = r"\d:\d\d(am|pm)"
-    if not re.match(pattern, time) and not re.match(pattern2, time):
+    pattern = r"\d{1,2}:\d\d(am|pm)"
+    if not re.match(pattern, time_string):
         raise ValueError(
             "time parameters must be of form "
             "[digit]*[digit]:[digit][digit]{am,pm}.")
 
-    hour, minutes = time[:-2].split(":")
+    #split hour, minutes, and merediem from string
+    hour, minutes = time_string[:-2].split(":")
+    meridiem = time_string[-2:]
 
-    if int(hour) < 0 or int(hour) > 12:
+    hour = int(hour)
+    minutes = int(minutes)
+    
+    #ensure hour and minutes are correct
+    if hour < 0 or hour > 12:
         raise ValueError(
             "hour digits must be between 0 and 12.")
 
-    if int(minutes) % 30 != 0:
-        raise ValueError("minute digits must be in 1/2 hour increments.")
+    if minutes % 30 != 0:
+        raise ValueError("minute digits must be 00 or 30.")
 
-def _validate_times(start_time, end_time):
-    """
-    Ensure start and end times conform to assumptions.
+    #convert hour to military time via meridiem
+    if meridiem == "pm" and hour != 12:
+        hour += 12
 
-    events cannot span multiple days; therefore end_time must be
-    strictly greater than start_time.
-    """
+    #return time object
+    return time(hour, minutes)
 
-    #grab hours and minutes of start and end time and convert to ints
-    start_hour, start_minutes = start_time[:-2].split(":")
-    start_hour, start_minutes = int(start_hour), int(start_minutes)
-    end_hour, end_minutes = end_time[:-2].split(":")
-    end_hour, end_minutes = int(end_hour), int(end_minutes)
+def is_confilicting(appt1, appt2):
+    """Determine if two Appointment objects are conflicting."""
+    #ensure both args are of type Appointment
+    appt1_cond = isinstance(appt1, Appointment)
+    appt2_cond = isinstance(appt1, Appointment)
 
-    #convert to military time for easy comparison
-    if start_time[-2:] == "pm":
-        if start_time[0:2] != "12":
-            start_hour += 12
-            start_hour = start_hour % 24
+    if not appt1_cond or not appt2_cond:
+        raise TypeError("parameters must be of type Appointment")
 
-    if end_time[-2:] == "pm":
-        if end_time[0:2] != "12":
-            end_hour += 12
-            end_hour = end_hour % 24
+    #if appointments aren't on the same day, they don't conflict
+    if appt1._day != appt:
+        return False
 
-    if start_time[-2:] == "am":
-        start_hour = start_hour % 12
+    #if there are no overlapping participants, they are not in conflict
+    if not set(appt1._participants) & set(appt2.participants):
+        return False
 
-    if end_time[-2:] == "am":
-        end_hour = end_hour % 12
+    #grab time objects from Appointment object
+    start1, end1 = appt1._start, appt1._end
+    start2, end2 = appt2._start, appt2._end
 
-    #handle case where end_time is 12:[xx]pm which gets modded to 0
-    if start_time[-2:] == "am" and end_time[-2:] == "pm":
-        return
+    #handle [s1,e1][s2,e2]
+    if end1 <= start2:
+        return False
 
-    if start_hour < end_hour:
-        return
+    #handle [s2,e2][s1,e1]
+    if end2 <= start1:
+        return False
 
-    if start_hour == end_hour:
-        if start_minutes < end_minutes:
-            return
-
-    raise ValueError(
-        "start_time parameter must come "
-        "strictly before end_time parameter.")
+    #if there's any overlap, they are in conflict
+    return True
 
 class Appointment(object):
     """
@@ -87,9 +78,9 @@ class Appointment(object):
     name:           name of the appointment enforced as a string.
     day:            day of the appointment enforced as a string
                     matching some day of the week.
-    start_time:     start time of the appointment enforced as a string of the
+    start:          start time of the appointment enforced as a string of the
                     form [digit]*[digit]:[digit][digit]{am,pm}.
-    end_time:       end time of the appointment enforced as a string of the
+    end:            end time of the appointment enforced as a string of the
                     form [digit]*[digit]:[digit][digit]{am,pm}
     participants:   list of participants in the appointment.
     """
@@ -109,12 +100,13 @@ class Appointment(object):
         if day.lower() not in days:
             raise ValueError("day parameter must be a day of the week.")
 
-        #ensure provided times are syntactically correct
-        _validate_time(start_time)
-        _validate_time(end_time)
+        start = _parse_time(start_time)
+        end = _parse_time(end_time)
 
-        #ensure provided times are semantically correct
-        _validate_times(start_time, end_time)
+        if not (start < end):
+            raise ValueError(
+                "start_time parameter must come strictly before end_time "
+                "parameter.")
 
         if not isinstance(participants, list):
             raise TypeError(
@@ -122,15 +114,20 @@ class Appointment(object):
 
         self._name = name
         self._day = day
-        self._start_time = start_time
-        self._end_time = end_time
+        self._start = start
+        self._end = end
         self._participants = participants
 
     def __str__(self):
         """Convert event object to human readable string representation."""
+        #add name
         appointment_str = "Appointment \"" + self._name + "\" on "
+        #add day
         appointment_str += self._day[0].upper() + self._day[1:] + " from "
-        appointment_str += self._start_time + " to " + self._end_time + " with "
+        #add time
+        appointment_str += str(self._start)[:-3] + " to " + str(self._end)[:-3]
+        appointment_str += " with "
+        #add participants
         if len(self._participants) > 2:
             appointment_str += "".join(
                 [str(i) + ", " for i in self._participants[:-1]])
@@ -142,3 +139,14 @@ class Appointment(object):
             appointment_str += str(self._participants[0])
 
         return appointment_str
+
+def main():
+    """Method for testing; not executed unless 'usr$ python Appointment.py'."""
+
+    a1 = Appointment("yo","saturday","12:30pm","1:30pm", [1, 2, 3])
+    a2 = Appointment("yerboi","saturday","1:30am","11:30pm", [1, 4, 5])
+    a3 = Appointment("we out here","saturday","11:30am","12:30pm", [1])
+    print(a1)
+
+if __name__ == "__main__":
+    main()

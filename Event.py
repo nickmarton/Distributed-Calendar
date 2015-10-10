@@ -32,19 +32,23 @@ class Event(object):
 
     def __eq__(self, other):
         """Determine if two Event objects are equal."""
-        c1 = self._op == other._op
-        c2 = self._time == other._time
-        c3 = self._node_id == other._node_id
-        c4 = self._appointment._name == other._appointment._name
+        c_op = self._op == other._op
+        c_time = self._time == other._time
+        c_id = self._node_id == other._node_id
+        c_name = self._appointment._name == other._appointment._name
 
-        return c1 and c2 and c3 and c4
+        return c_op and c_time and c_id and c_name
 
     def __ne__(self, other):
         """Determine if two Event objects are not equal."""
         return not __eq__(self, other)
 
-    def __repr__(self):
-        """Create machine representation of Event object."""
+    def __str__(self):
+        """Creeate human-readable string representation of Event object."""
         repr_str = self._op + "(" + self._appointment._name + "), "
         repr_str += str(self._time) + ", " + str(self._node_id)
         return repr_str
+
+    def __repr__(self):
+        """Create machine representation of Event object."""
+        return __str__(self)
