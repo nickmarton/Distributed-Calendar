@@ -134,8 +134,11 @@ class Appointment(object):
         c_start = self._start == other._start
         c_end = self._end == other._end
         
-        shared_nodes = set(self._participants) & set(other._participants)
-        c_participants = len(shared_nodes) == len(self._participants)
+        #if the length of the union of the participants is equal to the length
+        #of the intersection, they are the same participants
+        intersection = set(self._participants) & set(other._participants)
+        union = set(self._participants) | set(other._participants)
+        c_participants = len(union) == len(intersection)
 
         return c_name and c_day and c_start and c_end and c_participants
 
@@ -171,7 +174,6 @@ def main():
     a1 = Appointment("yo","saturday","12:30pm","1:30pm", [1, 2, 3])
     a2 = Appointment("yerboi","saturday","1:30am","11:30pm", [1, 4, 5])
     a3 = Appointment("we out here","saturday","11:30am","12:30pm", [1])
-    print(a1)
 
 if __name__ == "__main__":
     main()

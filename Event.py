@@ -89,6 +89,8 @@ class Event(object):
             raise ValueError(
                 "operation must be either INSERT, DELETE, SEND, or RECEIVE")
         
+        import copy
+
         #if op is INSERT or DELETE
         if op in valid_ops[0:2]:
             #if op_params is not an appointment, raise TypeError
@@ -96,6 +98,9 @@ class Event(object):
                 raise TypeError(
                     "op_params must be of type Appointment for"
                     r"INSERT and DELETE operations")
+
+            #make a copy of op_params Appointment object to be safe
+            params = copy.deepcopy(op_params)
 
         #if op is SEND or RECEIVE
         if op in valid_ops[2:4]:
@@ -105,8 +110,11 @@ class Event(object):
                     "op_params must be a 2tuple of an event-log and 2DTT for"
                     "SEND and RECEIVE operations")
 
+            #make a copy of op_params Appointment object to be safe
+            params = copy.deepcopy(op_params)
+
         self._op = op
-        self._op_params = op_params
+        self._op_params = params
         self._time = time
         self._node_id = node_id
 
@@ -136,4 +144,4 @@ class Event(object):
 
     def __repr__(self):
         """Create machine representation of Event object."""
-        return __str__(self)
+        return self.__str__()

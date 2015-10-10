@@ -17,6 +17,8 @@ class Node(object):
                     data structure by this Node.
     log:            local log of event records maintained by this Node.
     T:              this Node's 2D Time Table.
+    
+    Node ID's are assumed to start at 0.
     """
 
     def __init__(self, node_id, node_count):
@@ -35,7 +37,28 @@ class Node(object):
         self._calendar = {}
         self._log = []
         self._T = [[0 for j in range(node_count)] for i in range(node_count)]
-      
+        self._node_count = node_count
+    
+    def hasRec(self, eR, k):
+        """
+        hasRec predicate presented in paper.
+        
+        Determine if this Node knows that Node k has learned of all events at
+        eR.node up until time eR.time.
+        """
+
+        #type checking to be safe        
+        if not isinstance(eR, Event):
+            raise TypeError("eR must be of type Event")
+        if not isinstance(k, int):
+            raise TypeError("k must be the integer id of some node")
+
+        if k > self._node_count - 1:
+            raise ValueError(
+                "k must be within range ""[0:" + str(self._node_count-1) + "]")
+
+        return self._T[k][eR._node_id] >= eR._time
+
     def _is_calendar_conflicting(self, X):
         """
         Determine if Appointment object X conflicts with some Appointment
@@ -54,6 +77,9 @@ class Node(object):
         """
         Determine if X (an Appointment or string) is within this Node's
         calendar.
+
+        We can use name to determine if X is within local calendar by
+        assumption of unique names.
         """
 
         #determine if X is a string or Appointment, raise TypeError if neither
@@ -82,7 +108,6 @@ class Node(object):
 
     def _handle_conflict(self):
         """Execute conflict resolution protocol."""
-        print "conflict"
         pass
 
     def insert(self, X):
@@ -96,8 +121,6 @@ class Node(object):
         self._clock += 1
         self._T[self._id][self._id] = self._clock
 
-
-        '''
         #if the appointment doesn't conflict with anything currently in the
         #local calendar
         if not self._is_calendar_conflicting(X):
@@ -116,8 +139,57 @@ class Node(object):
             #add appointment to calendar using appointment name as key as
             #we have assumed unique names for appointments.
             self._calendar[X._name] = X
+
+            #for every user in the participant list of scheduled Appointment X
+            for user in X._participants:
+                #if the user is not this Node, propogate scheduled Appointment
+                if user != self._id:
+                    pass#call send with this nodes log + 2DTT
+
         else:
             #event conflicts with local calendar, 
             #execute conflict resolution protocol
+            print "NOPE:" + X._name
             self._handle_conflict()
-        '''
+
+    def delete(self, X):
+        """Insert Appointment X into this Node's local calendar and log."""
+        #ensure we're getting an Appointment object or name of one
+        if not isinstance(X, Appointment) and not isinstance(X, str):
+            raise TypeError("X must be of type or string.")
+
+        #increment clock and update this Node's time table
+        self._clock += 1
+        self._T[self._id][self._id] = self._clock
+
+        #if the Appointment object (or appointment name) X is in this Node's
+        #local calendar
+        if self._is_in_calendar(X):
+            
+            #ensure we store the Appointment itself in op_params and not just
+            #the name of some Appointment object
+            if isinstance(X, Appointment):
+                appt = X
+            else:
+                appt = self._calendar[X]
+
+            #create Event object for the deletion of this appointment
+            #and place it in the log if it's not in the log already
+            e = Event(
+                op=r"DELETE", 
+                time=self._clock, 
+                node_id=self._id, 
+                op_params=appt)
+
+            if e not in self._log:
+                self._log.append(e)
+
+            #add appointment to calendar using appointment name as key as
+            #we have assumed unique names for appointments.
+            self._calendar.pop(X._name, None)
+
+            #for every user in the participant list of scheduled Appointment X
+            for user in X._participants:
+                #if the user is not this Node, propogate scheduled Appointment
+                if user != self.node_id:
+                    pass#call send with this nodes log + 2DTT
