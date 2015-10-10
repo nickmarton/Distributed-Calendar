@@ -3,7 +3,17 @@
 from Appointment import Appointment
 
 class Event(object):
-    """Event class."""
+    """
+    Event Record class.
+    
+    op:             operation; {INSERT, DELETE, SEND, RECEIVE}.
+    op_params:      operation parameters; either an Appointment object for
+                    INSERT and DELETE events or a 2-tuple of an event-log
+                    (list of Event objects) and 2DTT (self_T; 2D list of ints)
+                    for SEND and RECEIVE events.
+    time:           time at node_id of event creation.
+    node_id:        ID of Node that created this Event.
+    """
 
     def __init__(self, op, op_params, time, node_id):
         """Initialize a new Event object for a particular Node."""
@@ -95,7 +105,7 @@ class Event(object):
         """Determine if two Event objects are equal."""
         
         def _eq_params(params1, params2):
-            """Determine if parameters of two matching ops are equal."""
+            """Determine if parameters of two op_param's are equal."""
 
             #if op is INSERT or DELETE, compare Appointment objects
             if isinstance(params1, Appointment) and isinstance(params2, Appointment):
