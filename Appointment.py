@@ -1,4 +1,4 @@
-"""Appointment Event Class for Distributed Systems Project 1."""
+"""Appointment class for Distributed Systems Project 1."""
 
 from datetime import time
 
@@ -36,10 +36,13 @@ def _parse_time(time_string):
     if meridiem == "pm" and hour != 12:
         hour += 12
 
+    if meridiem == "am":
+        hour%=12
+
     #return time object
     return time(hour, minutes)
 
-def is_confilicting(appt1, appt2):
+def is_appointments_conflicting(appt1, appt2):
     """Determine if two Appointment objects are conflicting."""
     #ensure both args are of type Appointment
     appt1_cond = isinstance(appt1, Appointment)
@@ -49,11 +52,11 @@ def is_confilicting(appt1, appt2):
         raise TypeError("parameters must be of type Appointment")
 
     #if appointments aren't on the same day, they don't conflict
-    if appt1._day != appt:
+    if appt1._day != appt2._day:
         return False
 
     #if there are no overlapping participants, they are not in conflict
-    if not set(appt1._participants) & set(appt2.participants):
+    if not set(appt1._participants) & set(appt2._participants):
         return False
 
     #grab time objects from Appointment object
@@ -86,7 +89,7 @@ class Appointment(object):
     """
 
     def __init__(self, name, day, start_time, end_time, participants):
-        """Initialize an event object."""
+        """Initialize an Appointment object."""
         #enforce name and day as strings
         if not isinstance(name, str):
             raise TypeError("name parameter must be of type string.")
@@ -112,11 +115,33 @@ class Appointment(object):
             raise TypeError(
                 "participants parameter must be of type list")
 
+        for participant in participants:
+            if not isinstance(participant, int):
+                raise TypeError(
+                    "participants parameter must contain only node_id ints")
+
         self._name = name
         self._day = day
         self._start = start
         self._end = end
         self._participants = participants
+
+    def __eq__(self, other):
+        """Determine if two Appointment objects are equivalent."""
+
+        c_name = self._name == other._name
+        c_day = self._day == other._day
+        c_start = self._start == other._start
+        c_end = self._end == other._end
+        
+        shared_nodes = set(self._participants) & set(other._participants)
+        c_participants = len(shared_nodes) == len(self._participants)
+
+        return c_name and c_day and c_start and c_end and c_participants
+
+    def __ne__(self, other):
+        """Determine if two Appointment objects are not equivalent."""
+        return not __eq__(self, other)
 
     def __str__(self):
         """Convert event object to human readable string representation."""

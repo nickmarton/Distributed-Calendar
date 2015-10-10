@@ -1,7 +1,7 @@
 """Node class for Distributed Systems Project 1."""
 
 from Event import Event
-from Appointment import Appointment, is_conflicting
+from Appointment import Appointment, is_appointments_conflicting
 
 class Node(object):
     """
@@ -35,9 +35,54 @@ class Node(object):
         self._calendar = {}
         self._log = []
         self._T = [[0 for j in range(node_count)] for i in range(node_count)]
-        
+      
+    def _is_calendar_conflicting(self, X):
+        """
+        Determine if Appointment object X conflicts with some Appointment
+        already in the calendar.
+        """
+
+        #for each appointment in the calendar
+        for name, appointment in self._calendar.iteritems():
+            #if any appointment conflicts with new appointment X, they conflict
+            if is_appointments_conflicting(appointment, X):
+                return True
+
+        return False
+
+    def _is_in_calendar(self, X):
+        """
+        Determine if X (an Appointment or string) is within this Node's
+        calendar.
+        """
+
+        #determine if X is a string or Appointment, raise TypeError if neither
+        is_name_string = isinstance(X, str)
+        is_appointment = isinstance(X, Appointment)
+
+        if not is_name_string and not is_appointment:
+            raise TypeError(str(X) + " must be a string or Appointment object")
+
+        #if X is a string
+        if is_name_string:
+            #determine if X is the name of any entry in this Node's calendar
+            for appointment_name in self._calendar.keys():
+                if appointment_name == X:
+                    return True
+
+        #if X is an Appointment object
+        if is_appointment:
+            #determine if name of X is the name of any entry in this Node's
+            #calendar
+            for appointment_name in self._calendar.keys():
+                if X._name == appointment_name:
+                    return True
+
+        return False
+
     def _handle_conflict(self):
         """Execute conflict resolution protocol."""
+        print "conflict"
         pass
 
     def insert(self, X):
@@ -51,20 +96,28 @@ class Node(object):
         self._clock += 1
         self._T[self._id][self._id] = self._clock
 
-        #if the event doesn't conflict with anything currently in the
+
+        '''
+        #if the appointment doesn't conflict with anything currently in the
         #local calendar
-        if not self._is_conflicting(X):
+        if not self._is_calendar_conflicting(X):
             
+            #create Event object for the insertion of this appointment
+            #and place it in the log if it's not in the log already
+            e = Event(
+                op="INSERT", 
+                time=self._clock, 
+                node_id=self._id, 
+                op_params=X)
+
+            if e not in self._log:
+                self._log.append(e)
+
             #add appointment to calendar using appointment name as key as
             #we have assumed unique names for appointments.
             self._calendar[X._name] = X
-
-            #create Event object for the insertion of this appointment
-            #and place it in the log if it's not in the log already
-            e = Event("INSERT", self._clock, self._id, X)
-            if e not in self._log:
-                self._log.append(e)
         else:
             #event conflicts with local calendar, 
             #execute conflict resolution protocol
             self._handle_conflict()
+        '''
