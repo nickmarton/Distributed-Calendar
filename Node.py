@@ -7,9 +7,7 @@ class Node(object):
     """
     Node object.
 
-    node_count:     number of total Nodes in the distributed system enforced as
-                    an integer; node_id must be strictly less than this. 
-    node_id:        unique id of this Node; the creator of the Node is
+    id:             unique id of this Node; the creator of the Node is
                     responsible for ensuring the id is unique.
     clock:          local clock of the Node enforced as an integer and
                     incremented whenever it is referenced.
@@ -17,6 +15,8 @@ class Node(object):
                     data structure by this Node.
     log:            local log of event records maintained by this Node.
     T:              this Node's 2D Time Table.
+    node_count:     number of total Nodes in the distributed system enforced as
+                    an integer; node_id must be strictly less than this. 
     
     Node ID's are assumed to start at 0.
     """
@@ -28,7 +28,7 @@ class Node(object):
         if not isinstance(node_count, int):
             raise TypeError("node_count parameter must be of type int.")
         
-        if node_id > node_count:
+        if node_id > node_count - 1:
             raise ValueError(
                 "node_id can not exceed total number of Nodes (node_count)")
 
@@ -116,10 +116,13 @@ class Node(object):
         if not isinstance(X, Appointment):
             raise TypeError("X must be of type Appointment.")
 
+        #set i for convenience
+        i = self._id
+
         #TODO: find out if clock only gets updated in event of successful insertion
         #increment clock and update this Node's time table
         self._clock += 1
-        self._T[self._id][self._id] = self._clock
+        self._T[i][i] = self._clock
 
         #if the appointment doesn't conflict with anything currently in the
         #local calendar
@@ -130,7 +133,7 @@ class Node(object):
             e = Event(
                 op="INSERT", 
                 time=self._clock, 
-                node_id=self._id, 
+                node_id=i, 
                 op_params=X)
 
             if e not in self._log:
@@ -143,7 +146,7 @@ class Node(object):
             #for every user in the participant list of scheduled Appointment X
             for user in X._participants:
                 #if the user is not this Node, propogate scheduled Appointment
-                if user != self._id:
+                if user != i:
                     pass#call send with this nodes log + 2DTT
 
         else:
@@ -158,9 +161,11 @@ class Node(object):
         if not isinstance(X, Appointment) and not isinstance(X, str):
             raise TypeError("X must be of type or string.")
 
+        i = self._id
+
         #increment clock and update this Node's time table
         self._clock += 1
-        self._T[self._id][self._id] = self._clock
+        self._T[i][i] = self._clock
 
         #if the Appointment object (or appointment name) X is in this Node's
         #local calendar
@@ -178,7 +183,7 @@ class Node(object):
             e = Event(
                 op=r"DELETE", 
                 time=self._clock, 
-                node_id=self._id, 
+                node_id=i, 
                 op_params=appt)
 
             if e not in self._log:
@@ -191,5 +196,72 @@ class Node(object):
             #for every user in the participant list of scheduled Appointment X
             for user in X._participants:
                 #if the user is not this Node, propogate scheduled Appointment
-                if user != self.node_id:
+                if user != i:
                     pass#call send with this nodes log + 2DTT
+
+    def send(self, k):
+        """Build partial log and send to node with node_id k."""
+        import copy
+        #construct partial log of events to send to Node k
+        NP = [eR for eR in self._log if not self.hasRec(eR, k)]
+        msg = (NP, copy.deepcopy(self._T), self._node_id)
+
+        #do send of actual msg via TCP
+
+    def receive(self):
+        """Receive messages over TCP."""
+
+        #set i and n for name convenience
+        i, n = self._node_id, self._node_count
+        
+        #dummy message for now
+        m = (None, None)
+
+        #pull partial log, 2DTT and sender id k from message m
+        NPk, Tk, k = m
+
+        #get list of events this Node doesn't know about
+        NE = [fR for fR in NPk if not self.hasRec(fR, i)]
+
+        #get list of Appointments within this Node's calendar and the
+        #Appointments from the NE list
+        Vi = list(set(self._calendar.values() + [cvR.op_params for cvR in NE]))
+
+        filtered_Vi = []
+
+        #filter out deleted Appointments
+        for v in Vi:
+            for dR in NE:
+                if dR.op == r"DELETE" and dR.op_params == v:
+                    break
+            else:
+                filtered_Vi.append(v)
+
+        #list of appointments which will become this Node's new dict
+        Vi = filtered_Vi
+        #rewrite dictionary with valid appointments only
+        self._calendar = {}
+        for v in Vi:
+            self._calendar[v._name] = v
+
+        #extract direct knowledge from Node k's 2DTT
+        for I in range(n):
+            self._T[i][I] = max(self._T[i][I], Tk[k][I])
+
+        #extract indirect knowledge from Node k's 2DTT
+        for I in range(n):
+            for J in range(n):
+                self._T[I][J] = max(self._T[I][J], Tk[I][J])
+
+        #create new log and union of this Node's log and NE list
+        new_log = []
+        PLiUNE = list(set(list(self._log) + NE))
+        #if there is some Node j for which this Node knows j does not know of
+        #all events up to time eR.time, we can't discard it, keep it in the log
+        for eR in PLiUNE:
+            for j in range(n):
+                if not self.hasRec(eR, j):
+                    new_log.append(eR)
+                    break
+
+        self._log = new_log
