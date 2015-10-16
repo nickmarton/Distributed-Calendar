@@ -15,7 +15,7 @@ def _parse_time(time_string):
     if not re.match(pattern, time_string):
         raise ValueError(
             "time parameters must be of form "
-            "[digit]*[digit]:[digit][digit]{am,pm}.")
+            "(digit){1,2}:(digit){2}(am|pm)..")
 
     #split hour, minutes, and merediem from string
     hour, minutes = time_string[:-2].split(":")
@@ -82,9 +82,9 @@ class Appointment(object):
     day:            day of the appointment enforced as a string
                     matching some day of the week.
     start:          start time of the appointment enforced as a string of the
-                    form [digit]*[digit]:[digit][digit]{am,pm}.
+                    form (digit){1,2}:(digit){2}(am|pm).
     end:            end time of the appointment enforced as a string of the
-                    form [digit]*[digit]:[digit][digit]{am,pm}
+                    form (digit){1,2}:(digit){2}(am|pm).
     participants:   list of participants in the appointment.
     """
 
