@@ -110,6 +110,16 @@ class Node(object):
         """Execute conflict resolution protocol."""
         pass
 
+    def _save_state(self):
+        """Save this Node's state to state.txt in cwd."""
+        with open("./state.txt", "w") as f:
+            #write id and clock value on separate lines
+            f.write(str(self._id) + '\n')
+            f.write(str(self._clock) + '\n')
+            #write appointments to file each on their own line
+            for appt in self._calendar.values():
+                f.write(appt.__repr__() + '\n')
+
     def insert(self, X):
         """Insert Appointment X into this Node's local calendar and log."""
         #ensure we're inserting an Appointment before anything.
@@ -265,3 +275,116 @@ class Node(object):
                     break
 
         self._log = new_log
+
+    def parse_command(self, cmd):
+        """Parse schedule, cancel and fail commands."""
+        
+        def generate_appointment(cmd, cmd_key):
+            """Generate appointment for schedule and cancel commands."""
+            error_msg = "command must in form: [user + cmd + \"appointment\"]"
+            error_msg += " for [participants] for [start_time - end_time]"
+            try:
+                #separate user, participants and time
+                user, participants, time = cmd.split(" for ")
+                #get scheduler
+                scheduler = int(user[5:user.find(cmd_key)])
+                
+                #get integer list of participant id's and check if each id is
+                #valid; remove all characters except digits, commas, and single
+                #whitespace (provided whitespace and commas not leading/trailing)
+                error_msg = "all participants id's must be integers separated "
+                error_msg += "by ' and ' or ', ' with no trailing commas."
+                participants = re.sub("[^\d, ]", "", participants).strip()
+                participants = list(set(
+                    [int(p) for p in participants.split(",")]))
+
+
+                #ensure all participant id's are valid
+                for p in participants:
+                    if p >= self._node_count:
+                        error_msg = "Participant id's must be less than the"
+                        error_msg += "total number of nodes"
+                        raise ValueError()
+
+                #split times from day if day provided, defaults to Sunday
+                day = "Sunday"
+                if " on " in time:
+                    time, day = time.split(" on ")
+
+                #split start and end times and reformat
+                error_msg = "times provided for appointment must be of the "
+                error_msg += "form: (digit){1,2}(|:(digit){2})(am|pm) - "
+                error_msg += "(digit){1,2}(|:(digit){2})(am|pm)"
+                start_time, end_time = time.replace(" ", "").split("-")
+                if ":" not in start_time:
+                    start_time = start_time[:-2] + ":00" + start_time[-2:]
+                if ":" not in end_time:
+                    end_time = end_time[:-2] + ":00" + end_time[-2:]
+
+                #if the last word before first "for" isn't appointment, treat
+                #everything after appointment as the name for the appointment
+                #the user is scheduling, otherwise build unique name from
+                #appointment info
+                if user.split(" ")[-1] != "appointment":
+                    index = -1
+                    for i, word in enumerate(cmd.split(" ")):
+                        if word == "appointment":
+                            index = i + 1
+                            break
+                    name = ' '.join(user.split(" ")[index:])
+                else:
+                    #build unique name of form
+                    #"[scheduler]_[participants]_[start]_[end]_[day]"
+                    name = str(scheduler) \
+                    + "_" + ",".join([str(p) for p in participants]) \
+                    + "_" + start_time + "_" + end_time + "_" + day
+
+                X = Appointment(name, day, start_time, end_time, participants)
+                return X
+            except Exception as e:
+                print "Invalid command: \"" + str(error_msg) + "\""
+                return None
+
+        def handle_schedule(cmd):
+            """Handle scheduling."""
+            X = generate_appointment(cmd, "schedules")
+            if X:
+                self.insert(X)
+            print X
+        def handle_cancel(cmd):
+            """Handle cancellations."""
+            X = generate_appointment(cmd, "cancels")
+            #print "cancel: " + str(X)
+
+        def handle_fail(cmd):
+            """Handle failures."""
+            #print "Saving state..."
+            self._save_state()
+
+        import re
+        schedule_pattern = "^user \d+ schedules appointment"
+        cancel_pattern = "^user \d+ cancels appointment"
+        fail_pattern = "^user \d+ (fails|crashes|goes down)$"
+        if re.match(schedule_pattern, cmd):
+            handle_schedule(cmd)
+        elif re.match(cancel_pattern, cmd):
+            handle_cancel(cmd)
+        elif re.match(fail_pattern, cmd):
+            handle_fail(cmd)
+        else:
+            print "Invalid command: \"" + str(cmd) + "\""
+
+def main():
+    """Main method; listener for input housed here."""
+
+    #listen forever
+    #while True:
+    #    cmd = parse_command(raw_input().lower())
+    N1 = Node(node_id=1, node_count=4)
+    N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
+    #N1.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
+    #N1.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
+    #N1.parse_command("user 1 goes down")
+
+if __name__ == "__main__":
+    main()
