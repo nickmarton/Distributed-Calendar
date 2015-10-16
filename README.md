@@ -1,2 +1,14 @@
 #Distributed Calendar
-Distributed Calendar application for CSCI 6963
+Distributed Calendar application for CSCI 4963/6963
+---
+
+#To Do:
+---
+* load state function
+* TCP set up and tear down
+    * send
+    * delete
+    * need to store all ip's in each node
+* conflict resolution protocol
+* GUI
+* move to AWS for distributed testing
