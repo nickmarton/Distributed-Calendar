@@ -163,4 +163,7 @@ class Event(object):
 
     def __repr__(self):
         """Create machine representation of Event object."""
-        return self.__str__()
+        repr_str = self._op + "_" + str(self._time) + "_" + str(self._node_id) + "_"
+        if isinstance(self._op_params, Appointment):
+            repr_str += self._op_params.__repr__()
+        return repr_str

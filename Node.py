@@ -119,6 +119,9 @@ class Node(object):
             #write appointments to file each on their own line
             for appt in self._calendar.values():
                 f.write(appt.__repr__() + '\n')
+            #write appointments to file each on their own line
+            for eR in self._log:
+                f.write(eR.__repr__() + '\n')
 
     def insert(self, X):
         """Insert Appointment X into this Node's local calendar and log."""
@@ -350,7 +353,7 @@ class Node(object):
             X = generate_appointment(cmd, "schedules")
             if X:
                 self.insert(X)
-            print X
+
         def handle_cancel(cmd):
             """Handle cancellations."""
             X = generate_appointment(cmd, "cancels")
@@ -382,9 +385,9 @@ def main():
     #    cmd = parse_command(raw_input().lower())
     N1 = Node(node_id=1, node_count=4)
     N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
-    #N1.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
-    #N1.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
-    #N1.parse_command("user 1 goes down")
+    N1.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
+    N1.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
+    N1.parse_command("user 1 goes down")
 
 if __name__ == "__main__":
     main()
