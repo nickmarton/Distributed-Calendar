@@ -112,6 +112,36 @@ class Node(object):
 
     def _save_state(self):
         """Save this Node's state to state.txt in cwd."""
+        #test nested logs
+        '''
+        log = [eR for eR in self._log]
+        T = [[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4]]
+        X = (log, T)
+
+        e = Event(
+            op="SEND", 
+            time=self._clock, 
+            node_id=self._id, 
+            op_params=X)
+
+
+        self._log.append(e)
+        log2 = [eR for eR in self._log if eR._op == "SEND"]
+        self._log = self._log[:-1]
+        T2 = [[6,7,8],[6,7,8],[6,7,8],[6,7,8]]
+        X2 = (log2, T2)
+
+        e2 = Event(
+            op="RECEIVE", 
+            time=self._clock, 
+            node_id=self._id, 
+            op_params=X2)
+
+        self._log.append(e2)
+        for i in self._log:
+            print i._op_params
+        '''
+
         with open("./state.txt", "w") as f:
             #write id and clock value on separate lines
             f.write(str(self._id) + '\n')
@@ -122,6 +152,15 @@ class Node(object):
             #write appointments to file each on their own line
             for eR in self._log:
                 f.write(eR.__repr__() + '\n')
+            #construct single line rep. of table; the table is square so
+            #easily recoverable
+            table_str = ''
+            for row in self._T:
+                 table_str += '_'.join([str(i) for i in row])
+                 table_str += '_'
+            f.write(table_str[:-1] + '\n')
+            #write node count
+            f.write(str(self._node_count) + '\n')
 
     def insert(self, X):
         """Insert Appointment X into this Node's local calendar and log."""
@@ -280,7 +319,12 @@ class Node(object):
         self._log = new_log
 
     def parse_command(self, cmd):
-        """Parse schedule, cancel and fail commands."""
+        """
+        Parse schedule, cancel and fail commands.
+
+        If provided command is wrongly formatted, "Invalid command: [reason]"
+        is printed to console and command is not processed.
+        """
         
         def generate_appointment(cmd, cmd_key):
             """Generate appointment for schedule and cancel commands."""
@@ -300,7 +344,6 @@ class Node(object):
                 participants = re.sub("[^\d, ]", "", participants).strip()
                 participants = list(set(
                     [int(p) for p in participants.split(",")]))
-
 
                 #ensure all participant id's are valid
                 for p in participants:
@@ -357,11 +400,12 @@ class Node(object):
         def handle_cancel(cmd):
             """Handle cancellations."""
             X = generate_appointment(cmd, "cancels")
+            if X:
+                self.delete(X)
             #print "cancel: " + str(X)
 
         def handle_fail(cmd):
             """Handle failures."""
-            #print "Saving state..."
             self._save_state()
 
         import re

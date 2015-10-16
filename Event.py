@@ -163,7 +163,23 @@ class Event(object):
 
     def __repr__(self):
         """Create machine representation of Event object."""
-        repr_str = self._op + "_" + str(self._time) + "_" + str(self._node_id) + "_"
+        repr_str = self._op + "_" 
+        repr_str += str(self._time) + "_" + str(self._node_id) + "_"
+        #if operation parameters is just an Appointment,
+        #add Appointment.__repr__(), otherwise we need to covert log and table
         if isinstance(self._op_params, Appointment):
             repr_str += self._op_params.__repr__()
+        else:
+            log, time_table = self._op_params
+            repr_str += "@"
+            for eR in log:
+                repr_str += (eR.__repr__() + '\n')
+            repr_str += "#"
+            table_str = ''
+            for row in time_table:
+                 table_str += '_'.join([str(i) for i in row])
+                 table_str += '_'
+            repr_str += table_str[:-1]
+            repr_str += "@"
+
         return repr_str
