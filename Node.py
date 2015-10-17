@@ -110,57 +110,21 @@ class Node(object):
         """Execute conflict resolution protocol."""
         pass
 
+    def _load_state(self):
+        """Load a previous state of this Node."""
+        import pickle
+        N = pickle.load( open( "state.p", "rb" ) )
+        self._id = N._id
+        self._clock = N._clock
+        self._calendar = N._calendar
+        self._log = N._log
+        self._T = N._T
+        self._node_count = N._node_count
+
     def _save_state(self):
         """Save this Node's state to state.txt in cwd."""
-        #test nested logs
-        '''
-        log = [eR for eR in self._log]
-        T = [[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4]]
-        X = (log, T)
-
-        e = Event(
-            op="SEND", 
-            time=self._clock, 
-            node_id=self._id, 
-            op_params=X)
-
-
-        self._log.append(e)
-        log2 = [eR for eR in self._log if eR._op == "SEND"]
-        self._log = self._log[:-1]
-        T2 = [[6,7,8],[6,7,8],[6,7,8],[6,7,8]]
-        X2 = (log2, T2)
-
-        e2 = Event(
-            op="RECEIVE", 
-            time=self._clock, 
-            node_id=self._id, 
-            op_params=X2)
-
-        self._log.append(e2)
-        for i in self._log:
-            print i._op_params
-        '''
-
-        with open("./state.txt", "w") as f:
-            #write id and clock value on separate lines
-            f.write(str(self._id) + '\n')
-            f.write(str(self._clock) + '\n')
-            #write appointments to file each on their own line
-            for appt in self._calendar.values():
-                f.write(appt.__repr__() + '\n')
-            #write appointments to file each on their own line
-            for eR in self._log:
-                f.write(eR.__repr__() + '\n')
-            #construct single line rep. of table; the table is square so
-            #easily recoverable
-            table_str = ''
-            for row in self._T:
-                 table_str += '_'.join([str(i) for i in row])
-                 table_str += '_'
-            f.write(table_str[:-1] + '\n')
-            #write node count
-            f.write(str(self._node_count) + '\n')
+        import pickle
+        pickle.dump( self, open( "./state.p", "wb" ) )
 
     def insert(self, X):
         """Insert Appointment X into this Node's local calendar and log."""
@@ -267,7 +231,7 @@ class Node(object):
         i, n = self._node_id, self._node_count
         
         #dummy message for now
-        m = (None, None)
+        m = (None, None, None)
 
         #pull partial log, 2DTT and sender id k from message m
         NPk, Tk, k = m
@@ -421,17 +385,45 @@ class Node(object):
         else:
             print "Invalid command: \"" + str(cmd) + "\""
 
+    def __str__(self):
+        """Human readable string of this Node."""
+        hr_str = ""
+        hr_str += "ID:" + str(self._id) + '\t\t' + str(type(self._id)) + '\n'
+        hr_str += "CLOCK: " + str(self._clock) + '\t' + str(type(self._clock)) + '\n'
+        hr_str += "CALENDAR:\n"
+        for k,v in self._calendar.iteritems():
+            hr_str += "\tAPPOINTMENT:" + k + '\t' + str(type(v)) + '\n'
+        hr_str += "LOG:\n"
+        for eR in self._log:
+            hr_str += '\t' + str(eR) + '\t' + str(type(eR)) + '\n'
+
+        hr_str += "TIME TABLE:\n"
+        for row in self._T:
+            hr_str += '\t' + str(row) + '\n'
+        hr_str += "NODE COUNT:" + str(self._node_count) + '\n'
+        return hr_str
+
 def main():
     """Main method; listener for input housed here."""
+    #init Node
+    N = Node(node_id=0, node_count=4)
+    #try to load a previous state of this Node
+    try:
+        N._load_state()
+    except IOError:
+        pass
 
+    print
+    print N._calendar["we out here"]
     #listen forever
     #while True:
-    #    cmd = parse_command(raw_input().lower())
-    N1 = Node(node_id=1, node_count=4)
-    N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
-    N1.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
-    N1.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
-    N1.parse_command("user 1 goes down")
+    #    cmd = N.parse_command(raw_input().lower())
+    '''
+    N.parse_command("user 0 schedules appointment yo for users 0,1,2 for 2pm - 3pm on Friday")
+    N.parse_command("user 0 schedules appointment we out here for users 0,1,2 for 2pm - 3pm on Saturday")
+    N.parse_command("user 0 schedules appointment yo2 for users 0,1,2 for 2pm - 3pm")
+    N.parse_command("user 0 goes down")
+    '''
 
 if __name__ == "__main__":
     main()
