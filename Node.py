@@ -187,8 +187,7 @@ class Node(object):
             #for every user in the participant list of scheduled Appointment X
             for user in X._participants:
                 #if the user is not this Node, propogate scheduled Appointment
-                if user != i:
-                    pass#call send with this nodes log + 2DTT
+                send(user)
 
         else:
             #event conflicts with local calendar, 
