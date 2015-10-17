@@ -2,6 +2,8 @@
 
 from Event import Event
 from Appointment import Appointment, is_appointments_conflicting
+import socket
+import thread
 
 class Node(object):
     """
@@ -17,16 +19,21 @@ class Node(object):
     T:              this Node's 2D Time Table.
     node_count:     number of total Nodes in the distributed system enforced as
                     an integer; node_id must be strictly less than this. 
-    
+    node_ID_to_IP   Dictionary of form [Int: (String1, String2)], containing the NodeIDs
+                    to IP address relationship of all nodes in system. String1 is the IP 
+                    while String2 is the port number                
+
     Node ID's are assumed to start at 0.
     """
 
-    def __init__(self, node_id, node_count):
+    def __init__(self, node_id, node_count, ids_to_IPs):
         """Initialize a new Node object."""
         if not isinstance(node_id, int):
             raise TypeError("node_id parameter must be of type int.")
         if not isinstance(node_count, int):
             raise TypeError("node_count parameter must be of type int.")
+        if not isinstance(ids_to_IPs, dict):
+            raise TypeError("ids_to_IPs must be of type dictionary.")
         
         if node_id > node_count - 1:
             raise ValueError(
@@ -38,6 +45,7 @@ class Node(object):
         self._log = []
         self._T = [[0 for j in range(node_count)] for i in range(node_count)]
         self._node_count = node_count
+        self._ids_to_IPs = ids_to_IPs
     
     def hasRec(self, eR, k):
         """
@@ -220,18 +228,23 @@ class Node(object):
         import copy
         #construct partial log of events to send to Node k
         NP = [eR for eR in self._log if not self.hasRec(eR, k)]
-        msg = (NP, copy.deepcopy(self._T), self._node_id)
+        msg = (NP, copy.deepcopy(self._T), self._id)
 
         #do send of actual msg via TCP
 
-    def receive(self):
+        ip_port_K = self._ids_to_IPs[k]
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((ip_port_K[0], ip_port_K[1]))
+
+        sock.send(str(msg))
+
+    def receive(self, message):
         """Receive messages over TCP."""
 
+        print(message.decode("utf-8"))
         #set i and n for name convenience
         i, n = self._node_id, self._node_count
-        
-        #dummy message for now
-        m = (None, None, None)
 
         #pull partial log, 2DTT and sender id k from message m
         NPk, Tk, k = m
@@ -288,8 +301,55 @@ class Node(object):
 
         If provided command is wrongly formatted, "Invalid command: [reason]"
         is printed to console and command is not processed.
+
+
+
+
+        [user assigning action] [appointment_type] [appointment_name] [ ( tuple of users appointment is for) ] [ (startTime, endtime) ] [ Day ]
+
+        user1 schedules yaboi (user1,user2,user3) (4:00pm,6:00pm) Friday
+
         """
-        
+
+        def create_arguements(cmd_string):
+            parts_of_appointment = cmd_string.split(" ")
+
+            if len(parts_of_appointment) == 6:
+                ans = []
+                for part in parts_of_appointment:
+                    ans.append(part)
+                return ans
+
+        def generate_appointment(cmd):
+            acting_user = cmd[0]
+            appointment_type = cmd[1]
+            appointment_name = cmd[2]
+            users_involved = cmd[3]
+            time_of_appointment = cmd[4]
+            day_of_appointment = cmd[5]
+
+            #put all users involved into a list
+            users_involved = users_involved.split(',')
+            node_ids = []
+            for user in users_involved:
+                current_user = user
+                current_user = current_user.strip('(')
+                current_user = current_user.strip(')')
+                current_user = current_user.strip('user')
+                node_ids.append(int(current_user))
+
+            start_end_times = time_of_appointment.split(',')
+
+            start_time = start_end_times[0].strip("(")
+            end_time = start_end_times[1].strip(")")
+
+
+
+            x = Appointment( 'user' + str(acting_user), str(day_of_appointment), str(start_time), str(end_time), node_ids)
+
+            return x
+
+        '''
         def generate_appointment(cmd, cmd_key):
             """Generate appointment for schedule and cancel commands."""
             error_msg = "command must in form: [user + cmd + \"appointment\"]"
@@ -297,6 +357,9 @@ class Node(object):
             try:
                 #separate user, participants and time
                 user, participants, time = cmd.split(" for ")
+
+
+                print "user:", user, " participants:", participants, " time:", time 
                 #get scheduler
                 scheduler = int(user[5:user.find(cmd_key)])
                 
@@ -326,6 +389,9 @@ class Node(object):
                 error_msg += "form: (digit){1,2}(|:(digit){2})(am|pm) - "
                 error_msg += "(digit){1,2}(|:(digit){2})(am|pm)"
                 start_time, end_time = time.replace(" ", "").split("-")
+
+                #print "Start time:", start_time, " end_time :", end_time
+                
                 if ":" not in start_time:
                     start_time = start_time[:-2] + ":00" + start_time[-2:]
                 if ":" not in end_time:
@@ -354,16 +420,17 @@ class Node(object):
             except Exception as e:
                 print "Invalid command: \"" + str(error_msg) + "\""
                 return None
-
+        '''
         def handle_schedule(cmd):
             """Handle scheduling."""
-            X = generate_appointment(cmd, "schedules")
+            X = generate_appointment(cmd)
             if X:
+                print "insert happened"
                 self.insert(X)
 
         def handle_cancel(cmd):
             """Handle cancellations."""
-            X = generate_appointment(cmd, "cancels")
+            X = generate_appointment(cmd)
             if X:
                 self.delete(X)
             #print "cancel: " + str(X)
@@ -372,10 +439,26 @@ class Node(object):
             """Handle failures."""
             self._save_state()
 
+        arguements = create_arguements(cmd)
+        command_type = arguements[1]
+
+        if command_type == "schedules":
+            handle_schedule(arguements)
+        elif command_type == "cancels":
+            handle_cancel(arguements)
+        elif command_type == "fail":
+            handle_fail(arguements)
+        else:
+            pass
+
+        '''
         import re
-        schedule_pattern = "^user \d+ schedules appointment"
-        cancel_pattern = "^user \d+ cancels appointment"
-        fail_pattern = "^user \d+ (fails|crashes|goes down)$"
+        schedule_pattern = "user \d+ schedules appointment"
+        cancel_pattern = "user \d+ cancels appointment"
+        fail_pattern = "user \d+ (fails|crashes|goes down)$"
+
+
+        print "cmd:", cmd
         if re.match(schedule_pattern, cmd):
             handle_schedule(cmd)
         elif re.match(cancel_pattern, cmd):
@@ -384,6 +467,29 @@ class Node(object):
             handle_fail(cmd)
         else:
             print "Invalid command: \"" + str(cmd) + "\""
+        '''
+
+
+
+def client_thread(conn, Node):
+    while 1:
+        data = conn.recv(2048)
+
+        if not data:
+            print("Ended connection")
+            break
+
+        if data.decode("utf-8") == "terminate" or data.decode("utf-8") == "quit":
+            print("Ending connection with client")
+            conn.close()
+            break
+
+        command = data.decode("utf-8")
+        print "here\n"
+        Node.receive(command)
+
+        conn.send(b'ACK ' + data)
+    conn.close()
 
     def __str__(self):
         """Human readable string of this Node."""
@@ -413,17 +519,49 @@ def main():
     except IOError:
         pass
 
-    print
-    print N._calendar["we out here"]
+    ids_to_IPs = { 0 : ("52.88.200.87", 1024), 1: ("54.68.99.54",1024)}
+    N1 = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
+
+
+    HOST = ""
+    PORT = 1024
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind((HOST, PORT))
+    sock.listen(3)
+
+    #N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
+
     #listen forever
     #while True:
-    #    cmd = N.parse_command(raw_input().lower())
-    '''
-    N.parse_command("user 0 schedules appointment yo for users 0,1,2 for 2pm - 3pm on Friday")
-    N.parse_command("user 0 schedules appointment we out here for users 0,1,2 for 2pm - 3pm on Saturday")
-    N.parse_command("user 0 schedules appointment yo2 for users 0,1,2 for 2pm - 3pm")
-    N.parse_command("user 0 goes down")
-    '''
+    #    cmd = parse_command(raw_input().lower())
 
+    import select
+    import sys
+    print("@> Node Started")
+    while 1:
+        r, w, x = select.select([sys.stdin, sock], [], [])
+        if not r:
+            continue
+        if r[0] is sys.stdin:
+            message = raw_input('')
+            if message == "quit":
+                break
+            else:
+                N1.parse_command(message)
+                N1.send(0)
+        else:
+            conn, addr = sock.accept()
+            print ('Connected with ' + addr[0] + ':' + str(addr[1])) 
+            thread.start_new_thread(client_thread ,(conn, N1))
+    sock.close()
+
+    
+#    N1 = Node(node_id=1, node_count=4)
+#    N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
+#    N1.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
+#    N1.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
+#    N1.parse_command("user 1 goes down")
+    
 if __name__ == "__main__":
     main()
