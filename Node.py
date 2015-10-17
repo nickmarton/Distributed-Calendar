@@ -538,7 +538,7 @@ def main():
     N1 = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
 
 
-    HOST = ""
+    HOST = "52.88.200.87"
     PORT = 1024
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
