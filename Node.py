@@ -469,8 +469,6 @@ class Node(object):
             print "Invalid command: \"" + str(cmd) + "\""
         '''
 
-
-
 def client_thread(conn, Node):
     while 1:
         data = conn.recv(2048)
@@ -491,23 +489,23 @@ def client_thread(conn, Node):
         conn.send(b'ACK ' + data)
     conn.close()
 
-    def __str__(self):
-        """Human readable string of this Node."""
-        hr_str = ""
-        hr_str += "ID:" + str(self._id) + '\t\t' + str(type(self._id)) + '\n'
-        hr_str += "CLOCK: " + str(self._clock) + '\t' + str(type(self._clock)) + '\n'
-        hr_str += "CALENDAR:\n"
-        for k,v in self._calendar.iteritems():
-            hr_str += "\tAPPOINTMENT:" + k + '\t' + str(type(v)) + '\n'
-        hr_str += "LOG:\n"
-        for eR in self._log:
-            hr_str += '\t' + str(eR) + '\t' + str(type(eR)) + '\n'
+def __str__(self):
+    """Human readable string of this Node."""
+    hr_str = ""
+    hr_str += "ID:" + str(self._id) + '\t\t' + str(type(self._id)) + '\n'
+    hr_str += "CLOCK: " + str(self._clock) + '\t' + str(type(self._clock)) + '\n'
+    hr_str += "CALENDAR:\n"
+    for k,v in self._calendar.iteritems():
+        hr_str += "\tAPPOINTMENT:" + k + '\t' + str(type(v)) + '\n'
+    hr_str += "LOG:\n"
+    for eR in self._log:
+        hr_str += '\t' + str(eR) + '\t' + str(type(eR)) + '\n'
 
-        hr_str += "TIME TABLE:\n"
-        for row in self._T:
-            hr_str += '\t' + str(row) + '\n'
-        hr_str += "NODE COUNT:" + str(self._node_count) + '\n'
-        return hr_str
+    hr_str += "TIME TABLE:\n"
+    for row in self._T:
+        hr_str += '\t' + str(row) + '\n'
+    hr_str += "NODE COUNT:" + str(self._node_count) + '\n'
+    return hr_str
 
 def main():
     """Main method; listener for input housed here."""
@@ -551,7 +549,7 @@ def main():
                 N.send(0)
         else:
             conn, addr = sock.accept()
-            print ('Connected with ' + addr[0] + ':' + str(addr[1])) 
+            print ('Connected with ' + addr[0] + ':' + str(addr[1]))
             thread.start_new_thread(client_thread ,(conn, N))
     sock.close()
     #'''
