@@ -170,11 +170,10 @@ class Appointment(object):
 
     def __repr__(self):
         """Machine representation of this Appointment object."""
-        repr_str = self._name + "_" + self._day + "_"
+        repr_str = "\""+ self._name + "_" + self._day + "_"
         
         #for both start and end time, convert back to time w/ merediem
-        times = [self._start, self._end]
-        for time_obj in times:
+        for time_obj in [self._start, self._end]:
             #get hours and minutes from time object
             time = str(time_obj).split(":")[0:2]
             hour, minutes = int(time[0]), time[1]
@@ -191,7 +190,7 @@ class Appointment(object):
 
         #add participants to repr_str
         repr_str += ",".join([str(p) for p in self._participants])
-        return repr_str
+        return repr_str + "\""
 
 def main():
     """Method for testing; not executed unless 'usr$ python Appointment.py'."""
@@ -200,5 +199,8 @@ def main():
     a2 = Appointment("yerboi","saturday","1:30am","11:30pm", [1, 4, 5])
     a3 = Appointment("we out here","saturday","11:30am","12:30pm", [1])
 
+    print a1.__repr__()
+
 if __name__ == "__main__":
     main()
+
