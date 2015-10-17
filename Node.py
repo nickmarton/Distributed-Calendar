@@ -46,6 +46,7 @@ class Node(object):
         self._T = [[0 for j in range(node_count)] for i in range(node_count)]
         self._node_count = node_count
         self._ids_to_IPs = ids_to_IPs
+    
     def __str__(self):
         """Human readable string of this Node."""
         hr_str = ""
@@ -63,6 +64,7 @@ class Node(object):
             hr_str += '\t' + str(row) + '\n'
         hr_str += "NODE COUNT:" + str(self._node_count) + '\n'
         return hr_str
+    
     def hasRec(self, eR, k):
         """
         hasRec predicate presented in paper.
@@ -158,7 +160,6 @@ class Node(object):
 
         #set i for convenience
         i = self._id
-
         #TODO: find out if clock only gets updated in event of successful insertion
         #increment clock and update this Node's time table
         self._clock += 1
@@ -359,11 +360,9 @@ class Node(object):
             start_time = start_end_times[0].strip("(")
             end_time = start_end_times[1].strip(")")
 
+            X = Appointment(str(appointment_name), str(day_of_appointment), str(start_time), str(end_time), node_ids)
 
-
-            x = Appointment( 'user' + str(acting_user), str(day_of_appointment), str(start_time), str(end_time), node_ids)
-
-            return x
+            return X
 
         '''
         def generate_appointment(cmd, cmd_key):
@@ -511,12 +510,20 @@ def main():
     ids_to_IPs = { 0 : ("", 1024), 1: ("",1024)}
     N = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
     
+    #print str(N)
     #try to load a previous state of this Node
     try:
         N._load_state()
     except IOError:
         pass
 
+    cmd1 = "user1 schedules yaboi (user1,user2,user3) (4:00pm,6:00pm) Friday"
+    cmd2 = "user1 schedules gay (user1,user2,user3) (4:00pm,6:00pm) Sunday"
+
+    N.parse_command(cmd1.lower())
+    N.parse_command(cmd2.lower())
+    print str(N)
+    '''
     HOST = ""
     PORT = 1024
 
@@ -553,7 +560,6 @@ def main():
             thread.start_new_thread(client_thread ,(conn, N))
     sock.close()
     #'''
-    
 #    N = Node(node_id=1, node_count=4)
 #    N.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
 #    N.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
