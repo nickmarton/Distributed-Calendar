@@ -343,6 +343,12 @@ class Node(object):
                 for part in parts_of_appointment:
                     ans.append(part)
                 return ans
+            else:
+                if len(parts_of_appointment) > 6:
+                    print "[ERROR]: Command has too many arguements 6 required", len(parts_of_appointment),"provided."
+                    return
+                elif len(parts_of_appointment) < 6:
+                    print "[ERROR]: Command does not have enough arguements 6 needed",len(parts_of_appointment),"provided." 
 
         def generate_appointment(cmd):
             acting_user = cmd[0]
@@ -462,16 +468,19 @@ class Node(object):
             self._save_state()
 
         arguements = create_arguements(cmd)
-        command_type = arguements[1]
 
-        if command_type == "schedules":
-            handle_schedule(arguements)
-        elif command_type == "cancels":
-            handle_cancel(arguements)
-        elif command_type == "fail":
-            handle_fail(arguements)
-        else:
-            pass
+        if arguements:
+            command_type = arguements[1]
+
+            if command_type == "schedules":
+                handle_schedule(arguements)
+            elif command_type == "cancels":
+                handle_cancel(arguements)
+            elif command_type == "fail":
+                handle_fail(arguements)
+            else:
+                print "[ERROR]: Command Type not correct. use 'schedules','cancels', or 'fail' "
+                pass
 
         '''
         import re
@@ -523,7 +532,7 @@ def main():
         N._load_state()
     except IOError:
         pass
-
+    '''
     cmd1 = "user1 schedules yaboi (user1,user2,user3) (4:00pm,6:00pm) Friday"
     cmd2 = "user1 schedules gay (user1,user2,user3) (4:00pm,6:00pm) Sunday"
 
