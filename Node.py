@@ -512,16 +512,14 @@ def client_thread(conn, Node):
 def main():
     """Main method; listener for input housed here."""
     #init Node
-    N = Node(node_id=0, node_count=4)
+    ids_to_IPs = { 0 : ("52.88.200.87", 1024), 1: ("54.68.99.54",1024)}
+    N = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
+    
     #try to load a previous state of this Node
     try:
         N._load_state()
     except IOError:
         pass
-
-    ids_to_IPs = { 0 : ("52.88.200.87", 1024), 1: ("54.68.99.54",1024)}
-    N1 = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
-
 
     HOST = ""
     PORT = 1024
@@ -530,7 +528,7 @@ def main():
     sock.bind((HOST, PORT))
     sock.listen(3)
 
-    #N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
+    #N.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
 
     #listen forever
     #while True:
@@ -539,29 +537,30 @@ def main():
     import select
     import sys
     print("@> Node Started")
-    while 1:
+    while True:
         r, w, x = select.select([sys.stdin, sock], [], [])
         if not r:
             continue
         if r[0] is sys.stdin:
             message = raw_input('')
             if message == "quit":
+                N._save_state()
                 break
             else:
-                N1.parse_command(message)
-                N1.send(0)
+                N.parse_command(message)
+                N.send(0)
         else:
             conn, addr = sock.accept()
             print ('Connected with ' + addr[0] + ':' + str(addr[1])) 
-            thread.start_new_thread(client_thread ,(conn, N1))
+            thread.start_new_thread(client_thread ,(conn, N))
     sock.close()
-
+    #'''
     
-#    N1 = Node(node_id=1, node_count=4)
-#    N1.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
-#    N1.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
-#    N1.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
-#    N1.parse_command("user 1 goes down")
+#    N = Node(node_id=1, node_count=4)
+#    N.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
+#    N.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
+#    N.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
+#    N.parse_command("user 1 goes down")
     
 if __name__ == "__main__":
     main()
