@@ -7,12 +7,12 @@ class Event(object):
     Event Record class.
     
     op:             operation; {INSERT, DELETE, SEND, RECEIVE}.
+    node_id:        ID of Node that created this Event.
+    time:           time at node_id of event creation.
     op_params:      operation parameters; either an Appointment object for
                     INSERT and DELETE events or a 2-tuple of an event-log
                     (list of Event objects) and 2DTT (self_T; 2D list of ints)
                     for SEND and RECEIVE events.
-    time:           time at node_id of event creation.
-    node_id:        ID of Node that created this Event.
     """
 
     def __init__(self, op, op_params, time, node_id):
@@ -161,25 +161,9 @@ class Event(object):
         repr_str += str(self._time) + ", " + str(self._node_id)
         return repr_str
 
-    def __repr__(self):
-        """Create machine representation of Event object."""
-        repr_str = self._op + "_" 
-        repr_str += str(self._time) + "_" + str(self._node_id) + "_"
-        #if operation parameters is just an Appointment,
-        #add Appointment.__repr__(), otherwise we need to covert log and table
-        if isinstance(self._op_params, Appointment):
-            repr_str += self._op_params.__repr__()
-        else:
-            log, time_table = self._op_params
-            repr_str += "@"
-            for eR in log:
-                repr_str += (eR.__repr__() + '\n')
-            repr_str += "#"
-            table_str = ''
-            for row in time_table:
-                 table_str += '_'.join([str(i) for i in row])
-                 table_str += '_'
-            repr_str += table_str[:-1]
-            repr_str += "@"
+def main():
+    """Main method; quick testing."""
 
-        return repr_str
+
+if __name__ == "__main__":
+    main()
