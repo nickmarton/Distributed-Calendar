@@ -254,12 +254,19 @@ class Node(object):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((ip_port_K[0], ip_port_K[1]))
 
-        sock.send(str(msg))
+        #pickle message and send
+        import pickle
+        message = pickle.dumps(msg)
+        sock.send(message)
 
     def receive(self, message):
         """Receive messages over TCP."""
 
         print(message.decode("utf-8"))
+
+        #unpickle message
+        import pickle
+        m = pickle.loads(message)
         #set i and n for name convenience
         i, n = self._node_id, self._node_count
 
