@@ -262,13 +262,11 @@ class Node(object):
     def receive(self, message):
         """Receive messages over TCP."""
 
-        print(message.decode("utf-8"))
-
         #unpickle message
         import pickle
         m = pickle.loads(message)
         #set i and n for name convenience
-        i, n = self._node_id, self._node_count
+        i, n = self._id, self._node_count
 
         #pull partial log, 2DTT and sender id k from message m
         NPk, Tk, k = m
@@ -278,14 +276,14 @@ class Node(object):
 
         #get list of Appointments within this Node's calendar and the
         #Appointments from the NE list
-        Vi = list(set(self._calendar.values() + [cvR.op_params for cvR in NE]))
+        Vi = list(set(self._calendar.values() + [cvR._op_params for cvR in NE]))
 
         filtered_Vi = []
 
         #filter out deleted Appointments
         for v in Vi:
             for dR in NE:
-                if dR.op == r"DELETE" and dR.op_params == v:
+                if dR._op == r"DELETE" and dR._op_params == v:
                     break
             else:
                 filtered_Vi.append(v)
@@ -513,9 +511,8 @@ def client_thread(conn, Node):
             conn.close()
             break
 
-        command = data.decode("utf-8")
         print "here\n"
-        Node.receive(command)
+        Node.receive(data)
 
         conn.send(b'ACK ' + data)
     conn.close()
@@ -523,7 +520,7 @@ def client_thread(conn, Node):
 def main():
     """Main method; listener for input housed here."""
     #init Node
-    ids_to_IPs = { 0 : ("", 1024), 1: ("",1024)}
+    ids_to_IPs = { 0 : ("", 1024), 1: ("",1025)}
     N = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
     
     #print str(N)
@@ -540,8 +537,9 @@ def main():
     N.parse_command(cmd2.lower())
     print str(N)
     '''
+    import sys
     HOST = ""
-    PORT = 1024
+    PORT = int(sys.argv[1])
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((HOST, PORT))
@@ -567,9 +565,10 @@ def main():
                 break
             elif message == "log":
                 print str(N)
+            elif message == "send":
+                N.send(1)
             else:
                 N.parse_command(message)
-                N.send(0)
         else:
             conn, addr = sock.accept()
             print ('Connected with ' + addr[0] + ':' + str(addr[1]))
