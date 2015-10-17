@@ -168,30 +168,6 @@ class Appointment(object):
 
         return appointment_str
 
-    def __repr__(self):
-        """Machine representation of this Appointment object."""
-        repr_str = "\""+ self._name + "_" + self._day + "_"
-        
-        #for both start and end time, convert back to time w/ merediem
-        for time_obj in [self._start, self._end]:
-            #get hours and minutes from time object
-            time = str(time_obj).split(":")[0:2]
-            hour, minutes = int(time[0]), time[1]
-            if hour > 12:
-                hour -= 12
-                time = str(hour) + ":" + minutes + "pm_"
-            elif hour == 12:
-                time = str(hour) + ":" + minutes + "pm_"
-            else:
-                time = str(hour) + ":" + minutes + "am_"
-            
-            #add time to repr_str
-            repr_str += time
-
-        #add participants to repr_str
-        repr_str += ",".join([str(p) for p in self._participants])
-        return repr_str + "\""
-
 def main():
     """Method for testing; not executed unless 'usr$ python Appointment.py'."""
 
