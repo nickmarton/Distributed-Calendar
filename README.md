@@ -4,7 +4,6 @@ Distributed Calendar application for CSCI 4963/6963
 
 #To Do:
 ---
-* load state function
 * TCP set up and tear down
     * send
     * delete

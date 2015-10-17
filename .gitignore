@@ -29,6 +29,7 @@ __pycache__
 *.sql
 *.sqlite
 *.txt
+*.rtf
 
 # OS generated files #
 ######################
