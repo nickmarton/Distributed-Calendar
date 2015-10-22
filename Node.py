@@ -1,9 +1,10 @@
 """Node class for Distributed Systems Project 1."""
 
-from Event import Event
-from Appointment import Appointment, is_appointments_conflicting
+import sys
 import socket
 import thread
+from Event import Event
+from Appointment import Appointment, is_appointments_conflicting
 
 class Node(object):
     """
@@ -188,8 +189,9 @@ class Node(object):
             for user in X._participants:
                 #if the user is not this Node, propogate scheduled Appointment
                 try:
-                    send(user)
+                    self.send(user)
                 except:
+                    print "fuck"
                     pass
 
         else:
@@ -250,7 +252,6 @@ class Node(object):
         msg = (NP, copy.deepcopy(self._T), self._id)
 
         #do send of actual msg via TCP
-
         ip_port_K = self._ids_to_IPs[k]
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -260,6 +261,8 @@ class Node(object):
         import pickle
         message = pickle.dumps(msg)
         sock.send(message)
+        sock.close()
+        print "after closing"
 
     def receive(self, message):
         """Receive messages over TCP."""
@@ -326,55 +329,44 @@ class Node(object):
         If provided command is wrongly formatted, "Invalid command: [reason]"
         is printed to console and command is not processed.
 
-
-
-
         [user assigning action] [appointment_type] [appointment_name] [ ( tuple of users appointment is for) ] [ (startTime, endtime) ] [ Day ]
-
-        user1 schedules yaboi (user1,user2,user3) (4:00pm,6:00pm) Friday
-
+        ex. "user1 schedules yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday".
         """
 
         def create_arguements(cmd_string):
+            """Split arguements into componenets."""
             parts_of_appointment = cmd_string.split(" ")
+            #define error string
+            error_str = "[ERROR]: Command has too {modal} arguements 6 required, "
+            error_str += (str(len(parts_of_appointment)) + " provided.")
 
+            #if correctly formatted
             if len(parts_of_appointment) == 6:
-                ans = []
-                for part in parts_of_appointment:
-                    ans.append(part)
-                return ans
+                return [part for part in parts_of_appointment]
             else:
+                #print error; invalid format
                 if len(parts_of_appointment) > 6:
-                    print "[ERROR]: Command has too many arguements 6 required", len(parts_of_appointment),"provided."
-                    return
+                    print error_str.format(modal="many")
                 elif len(parts_of_appointment) < 6:
-                    print "[ERROR]: Command does not have enough arguements 6 needed",len(parts_of_appointment),"provided." 
+                    print error_str.format(modal="little")
+                
+                return
 
-        def generate_appointment(cmd):
-            acting_user = cmd[0]
-            appointment_type = cmd[1]
-            appointment_name = cmd[2]
-            users_involved = cmd[3]
-            time_of_appointment = cmd[4]
-            day_of_appointment = cmd[5]
+        def generate_appointment(args):
+            """Convert provided args into an Appointment object."""
+            #split arg into relevant fields
+            name, participants, times, day = args[2], args[3], args[4], args[5]
 
-            #put all users involved into a list
-            users_involved = users_involved.split(',')
-            node_ids = []
-            for user in users_involved:
-                current_user = user
-                current_user = current_user.strip('(')
-                current_user = current_user.strip(')')
-                current_user = current_user.strip('user')
-                node_ids.append(int(current_user))
+            #convert list of participants into list of integer node id's
+            participants = participants[1:-1].replace("user", "").split(',')
+            node_ids = [int(p) for p in participants]
 
-            start_end_times = time_of_appointment.split(',')
+            #split start and end time
+            start_time, end_time = times[1:-1].split(',')
 
-            start_time = start_end_times[0].strip("(")
-            end_time = start_end_times[1].strip(")")
-
-            X = Appointment(str(appointment_name), str(day_of_appointment), str(start_time), str(end_time), node_ids)
-
+            #generate and return appointment object
+            X = Appointment(
+                str(name), str(day), str(start_time), str(end_time), node_ids)
             return X
 
         '''
@@ -449,6 +441,7 @@ class Node(object):
                 print "Invalid command: \"" + str(error_msg) + "\""
                 return None
         '''
+
         def handle_schedule(cmd):
             """Handle scheduling."""
             X = generate_appointment(cmd)
@@ -467,17 +460,17 @@ class Node(object):
             """Handle failures."""
             self._save_state()
 
-        arguements = create_arguements(cmd)
+        args = create_arguements(cmd)
 
-        if arguements:
-            command_type = arguements[1]
+        if args:
+            command_type = args[1]
 
             if command_type == "schedules":
-                handle_schedule(arguements)
+                handle_schedule(args)
             elif command_type == "cancels":
-                handle_cancel(arguements)
+                handle_cancel(args)
             elif command_type == "fail":
-                handle_fail(arguements)
+                handle_fail(args)
             else:
                 print "[ERROR]: Command Type not correct. use 'schedules','cancels', or 'fail' "
                 pass
@@ -501,7 +494,9 @@ class Node(object):
         '''
 
 def client_thread(conn, Node):
+    """."""
     while 1:
+        print "yo"
         data = conn.recv(2048)
 
         if not data:
@@ -521,40 +516,43 @@ def client_thread(conn, Node):
 
 def main():
     """Main method; listener for input housed here."""
-    #init Node
-    ids_to_IPs = { 0 : ("", 1024), 1: ("",1025)}
-    N = Node(node_id = 0, node_count = 4, ids_to_IPs = ids_to_IPs)
-    
-    #print str(N)
+
+    '''
+    cmd1 = "user1 schedules yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
+    cmd2 = "user1 schedules gay (user0,user1,user2,user3) (4:00pm,6:00pm) Sunday"
+    cmd3 = "user1 schedules test (user0,user1,user2,user3) (4:00pm,6:00pm) Thursday"
+    '''
+
+    Virginia_IP = "52.91.224.2"
+    Oregon_IP = "54.186.66.249"
+    California_IP = "52.8.82.73"
+    Ireland_IP = "52.18.135.200"
+
+    #init IP's of different regions
+    ids_to_IPs = {
+        0: (Virginia_IP, 9000),
+        1: (Oregon_IP, 9001),
+        2: (California_IP, 9002), 
+        3: (Ireland_IP, 9003)}
+
+    N = Node(node_id=0, node_count=4, ids_to_IPs=ids_to_IPs)
+
     #try to load a previous state of this Node
     try:
         N._load_state()
     except IOError:
         pass
-    '''
-    cmd1 = "user1 schedules yaboi (user1,user2,user3) (4:00pm,6:00pm) Friday"
-    cmd2 = "user1 schedules gay (user1,user2,user3) (4:00pm,6:00pm) Sunday"
 
-    N.parse_command(cmd1.lower())
-    N.parse_command(cmd2.lower())
-    print str(N)
-    '''
-    import sys
-    HOST = ""
+    HOST = "0.0.0.0"
     PORT = int(sys.argv[1])
 
+    #bind to host of 0.0.0.0 for any TCP traffic through AWS
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((HOST, PORT))
-    sock.listen(3)
-
-    #N.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
-
-    #listen forever
-    #while True:
-    #    cmd = parse_command(raw_input().lower())
+    #backlog to; 1 for each process
+    sock.listen(4)
 
     import select
-    import sys
     print("@> Node Started")
     while True:
         r, w, x = select.select([sys.stdin, sock], [], [])
@@ -576,12 +574,6 @@ def main():
             print ('Connected with ' + addr[0] + ':' + str(addr[1]))
             thread.start_new_thread(client_thread ,(conn, N))
     sock.close()
-    #'''
-#    N = Node(node_id=1, node_count=4)
-#    N.parse_command("user 1 schedules appointment yo for users 1,2,3 for 2pm - 3pm on Friday")
-#    N.parse_command("user 1 schedules appointment we out here for users 1,2,3 for 2pm - 3pm on Saturday")
-#    N.parse_command("user 1 schedules appointment yo2 for users 1,2,3 for 2pm - 3pm")
-#    N.parse_command("user 1 goes down")
     
 if __name__ == "__main__":
     main()
