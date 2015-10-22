@@ -191,7 +191,6 @@ class Node(object):
                 try:
                     self.send(user)
                 except:
-                    print "fuck"
                     pass
 
         else:
@@ -262,7 +261,6 @@ class Node(object):
         message = pickle.dumps(msg)
         sock.send(message)
         sock.close()
-        print "after closing"
 
     def receive(self, message):
         """Receive messages over TCP."""
@@ -496,7 +494,6 @@ class Node(object):
 def client_thread(conn, Node):
     """."""
     while 1:
-        print "yo"
         data = conn.recv(2048)
 
         if not data:
@@ -508,7 +505,6 @@ def client_thread(conn, Node):
             conn.close()
             break
 
-        print "here\n"
         Node.receive(data)
 
         conn.send(b'ACK ' + data)
