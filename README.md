@@ -1,9 +1,8 @@
 #Distributed Calendar
-Distributed Calendar application for CSCI 4963/6963
+Implementation of the Wuu-Bernstein Algorithm in Python
 ---
 
 #To Do:
 ---
 * conflict resolution protocol
 * GUI
-* move to AWS for distributed testing
