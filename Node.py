@@ -20,9 +20,9 @@ class Node(object):
     T:              this Node's 2D Time Table.
     node_count:     number of total Nodes in the distributed system enforced as
                     an integer; node_id must be strictly less than this. 
-    node_ID_to_IP   Dictionary of form [Int: (String1, String2)], containing the NodeIDs
-                    to IP address relationship of all nodes in system. String1 is the IP 
-                    while String2 is the port number                
+    node_ID_to_IP   Dictionary of form [Int: (String1, String2)], containing
+                    the NodeIDs to IP address relationship of all nodes in
+                    system. String1 is the IP while String2 is the port number                
 
     Node ID's are assumed to start at 0.
     """
@@ -133,8 +133,38 @@ class Node(object):
 
         return False
 
-    def _handle_conflict(self):
+    def _handle_conflict(self, X):
         """Execute conflict resolution protocol."""
+        #'''
+        my_id = self._id
+        node_count = self._node_count
+        
+        e = Event(
+            op=r"DELETE",
+            time=self._clock, 
+            node_id=my_id,
+            op_params=X)
+
+        for user in X._participants:
+            #construct single element log consisting of DELETE for conflicted X
+            T_0 = [[0 for j in range(node_count)] for i in range(node_count)]
+            msg = ([e], T_0, self._id)
+
+            if user > node_count - 1:
+                return
+
+            #do send of actual msg via TCP
+            ip_port_K = self._ids_to_IPs[user]
+
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((ip_port_K[0], ip_port_K[1]))
+
+            #pickle message and send
+            import pickle
+            message = pickle.dumps(msg)
+            sock.send(message)
+            sock.close()
+        #'''
         pass
 
     def _load_state(self):
@@ -159,17 +189,18 @@ class Node(object):
         if not isinstance(X, Appointment):
             raise TypeError("X must be of type Appointment.")
 
-        #set i for convenience
-        i = self._id
-        #TODO: find out if clock only gets updated in event of successful insertion
-        #increment clock and update this Node's time table
-        self._clock += 1
-        self._T[i][i] = self._clock
 
         #if the appointment doesn't conflict with anything currently in the
         #local calendar
         if not self._is_calendar_conflicting(X):
             
+            #set i for convenience
+            i = self._id
+            #TODO: find out if clock only gets updated in event of successful insertion
+            #increment clock and update this Node's time table
+            self._clock += 1
+            self._T[i][i] = self._clock
+
             #create Event object for the insertion of this appointment
             #and place it in the log if it's not in the log already
             e = Event(
@@ -188,16 +219,17 @@ class Node(object):
             #for every user in the participant list of scheduled Appointment X
             for user in X._participants:
                 #if the user is not this Node, propogate scheduled Appointment
-                try:
-                    self.send(user)
-                except:
-                    pass
+                if user != i:
+                    try:
+                        self.send(user)
+                    except:
+                        pass
 
         else:
             #event conflicts with local calendar, 
             #execute conflict resolution protocol
             print "NOPE:" + X._name
-            self._handle_conflict()
+            self._handle_conflict(X)
 
     def delete(self, X):
         """Insert Appointment X into this Node's local calendar and log."""
@@ -205,15 +237,15 @@ class Node(object):
         if not isinstance(X, Appointment) and not isinstance(X, str):
             raise TypeError("X must be of type or string.")
 
-        i = self._id
-
-        #increment clock and update this Node's time table
-        self._clock += 1
-        self._T[i][i] = self._clock
-
         #if the Appointment object (or appointment name) X is in this Node's
         #local calendar
         if self._is_in_calendar(X):
+
+            i = self._id
+
+            #increment clock and update this Node's time table
+            self._clock += 1
+            self._T[i][i] = self._clock
             
             #ensure we store the Appointment itself in op_params and not just
             #the name of some Appointment object
@@ -239,9 +271,12 @@ class Node(object):
 
             #for every user in the participant list of scheduled Appointment X
             for user in X._participants:
-                #if the user is not this Node, propogate scheduled Appointment
+                #if the user is not this Node, propogate canceled Appointment
                 if user != i:
-                    pass#call send with this nodes log + 2DTT
+                    try:
+                        self.send(user)
+                    except:
+                        pass
 
     def send(self, k):
         """Build partial log and send to node with node_id k."""
@@ -268,6 +303,13 @@ class Node(object):
         #unpickle message
         import pickle
         m = pickle.loads(message)
+
+        resolving_conflict = Node._using_conflict_resolution_protocol(m)
+        if resolving_conflict:
+            conflicted_event, T_0, k = m
+            print "RESOLVE CONFLICT"
+            return
+
         #set i and n for name convenience
         i, n = self._id, self._node_count
 
@@ -279,7 +321,8 @@ class Node(object):
 
         #get list of Appointments within this Node's calendar and the
         #Appointments from the NE list
-        Vi = list(set(self._calendar.values() + [cvR._op_params for cvR in NE]))
+        Vi = list(
+            set(self._calendar.values() + [cvR._op_params for cvR in NE]))
 
         filtered_Vi = []
 
@@ -491,6 +534,19 @@ class Node(object):
             print "Invalid command: \"" + str(cmd) + "\""
         '''
 
+    @staticmethod
+    def _using_conflict_resolution_protocol(message):
+        """Determine if messgae is from conflict resolution protocol."""
+        #pull partial log, 2DTT and sender id k from message m
+        NPk, Tk, k = message
+
+        #if any value is not 0, the message was sent through Wuu-Bernstein
+        for row in Tk:
+            for element in row:
+                if element != 0:
+                    return False
+        return True
+
 def client_thread(conn, Node):
     """."""
     while 1:
@@ -515,23 +571,24 @@ def main():
 
     '''
     cmd1 = "user1 schedules yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
+    cmd1 = "user1 cancels yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
     cmd2 = "user1 schedules gay (user0,user1,user2,user3) (4:00pm,6:00pm) Sunday"
     cmd3 = "user1 schedules test (user0,user1,user2,user3) (4:00pm,6:00pm) Thursday"
     '''
-
-    Virginia_IP = "52.91.224.2"
-    Oregon_IP = "54.186.66.249"
+    
+    Virginia_IP = "192.168.1.214"#"52.91.224.2"
+    Oregon_IP = "192.168.1.214"#"54.186.66.249"
     California_IP = "52.8.82.73"
     Ireland_IP = "52.18.135.200"
 
     #init IP's of different regions
     ids_to_IPs = {
         0: (Virginia_IP, 9000),
-        1: (Oregon_IP, 9001),
-        2: (California_IP, 9002), 
-        3: (Ireland_IP, 9003)}
+        1: (Oregon_IP, 9001)}#,
+        #2: (California_IP, 9002), 
+        #3: (Ireland_IP, 9003)}
 
-    N = Node(node_id=0, node_count=4, ids_to_IPs=ids_to_IPs)
+    N = Node(node_id=0, node_count=2, ids_to_IPs=ids_to_IPs)
 
     #try to load a previous state of this Node
     try:

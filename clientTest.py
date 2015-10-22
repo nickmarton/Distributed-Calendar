@@ -1,7 +1,7 @@
 import socket
 
-HOST = ""
-PORT = 1024
+HOST = "192.168.1.214"
+PORT = 9000
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
