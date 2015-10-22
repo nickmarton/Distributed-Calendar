@@ -135,37 +135,7 @@ class Node(object):
 
     def _handle_conflict(self, X):
         """Execute conflict resolution protocol."""
-        #'''
-        my_id = self._id
-        node_count = self._node_count
-        
-        e = Event(
-            op=r"DELETE",
-            time=self._clock, 
-            node_id=my_id,
-            op_params=X)
-
-        for user in X._participants:
-            #construct single element log consisting of DELETE for conflicted X
-            T_0 = [[0 for j in range(node_count)] for i in range(node_count)]
-            msg = ([e], T_0, self._id)
-
-            if user > node_count - 1:
-                return
-
-            #do send of actual msg via TCP
-            ip_port_K = self._ids_to_IPs[user]
-
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((ip_port_K[0], ip_port_K[1]))
-
-            #pickle message and send
-            import pickle
-            message = pickle.dumps(msg)
-            sock.send(message)
-            sock.close()
-        #'''
-        pass
+        self.delete(X)
 
     def _load_state(self):
         """Load a previous state of this Node."""
@@ -303,12 +273,6 @@ class Node(object):
         #unpickle message
         import pickle
         m = pickle.loads(message)
-
-        resolving_conflict = Node._using_conflict_resolution_protocol(m)
-        if resolving_conflict:
-            conflicted_event, T_0, k = m
-            print "RESOLVE CONFLICT"
-            return
 
         #set i and n for name convenience
         i, n = self._id, self._node_count
