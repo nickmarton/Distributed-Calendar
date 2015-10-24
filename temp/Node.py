@@ -158,7 +158,7 @@ class Node(object):
         #ensure we're inserting an Appointment before anything.
         if not isinstance(X, Appointment):
             raise TypeError("X must be of type Appointment.")
- 
+
 
         #if the appointment doesn't conflict with anything currently in the
         #local calendar
@@ -191,7 +191,7 @@ class Node(object):
                 #if the user is not this Node, propogate scheduled Appointment
                 if user != i:
                     try:
-                        thread.start_new_thread(self.send(user))
+                        self.send(user)
                     except:
                         pass
 
@@ -244,7 +244,7 @@ class Node(object):
                 #if the user is not this Node, propogate canceled Appointment
                 if user != i:
                     try:
-                        thread.start_new_thread(self.send(user))
+                        self.send(user)
                     except:
                         pass
 
@@ -537,13 +537,15 @@ def main():
     cmd1 = "user1 schedules yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
     cmd1 = "user1 cancels yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
     cmd2 = "user1 schedules gay (user0,user1,user2,user3) (4:00pm,6:00pm) Sunday"
+    cmd2 = "user1 schedules straight (user0,user1,user2,user3) (2:00pm,4:00pm) Sunday"
+    cmd2 = "user1 schedules just_guys (user0,user1,user2,user3) (1:00am,6:00m) Sunday"
     cmd3 = "user1 schedules test (user0,user1,user2,user3) (4:00pm,6:00pm) Thursday"
     '''
     
-    Virginia_IP = "52.91.185.160"
-    Oregon_IP = "52.27.242.30"
-    California_IP = "54.153.45.240"
-    Ireland_IP = "52.18.115.205"
+    Virginia_IP = "192.168.1.214"#"52.91.224.2"
+    Oregon_IP = "192.168.1.214"#"54.186.66.249"
+    California_IP = "52.8.82.73"
+    Ireland_IP = "52.18.135.200"
 
     #init IP's of different regions
     ids_to_IPs = {
@@ -552,7 +554,7 @@ def main():
         #2: (California_IP, 9002), 
         #3: (Ireland_IP, 9003)}
 
-    N = Node(node_id=0, node_count=4, ids_to_IPs=ids_to_IPs)
+    N = Node(node_id=1, node_count=2, ids_to_IPs=ids_to_IPs)
 
     #try to load a previous state of this Node
     try:
