@@ -6,6 +6,7 @@ import thread
 from Event import Event
 from Appointment import Appointment, is_appointments_conflicting
 
+
 class Node(object):
     """
     Node object.
@@ -530,8 +531,6 @@ def main():
                 break
             elif message == "log":
                 print str(N)
-            elif message == "send":
-                N.send(1)
             else:
                 N.parse_command(message)
         else:
