@@ -161,6 +161,10 @@ class Event(object):
         repr_str += str(self._time) + ", " + str(self._node_id)
         return repr_str
 
+    def __repr__(self):
+        """."""
+        return self.__str__()
+
 def main():
     """Main method; quick testing."""
 

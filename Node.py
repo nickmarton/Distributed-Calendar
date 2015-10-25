@@ -106,6 +106,21 @@ class Node(object):
 
         return False
 
+    @staticmethod
+    def _get_conflicting_appointment(calendar, X):
+        """
+        Assuming a conflicting appointment, return the Appointment object
+        conflicting with X in calendar.
+        """
+
+        #for each appointment in the calendar
+        for name, appointment in calendar.iteritems():
+            #if any appointment conflicts with new appointment X, they conflict
+            if is_appointments_conflicting(appointment, X):
+                return appointment
+
+        raise KeyError(str(X) + " does not conflict with any Appointment.") 
+
     def _is_in_calendar(self, X):
         """
         Determine if X (an Appointment or string) is within this Node's
@@ -333,7 +348,7 @@ class Node(object):
 
         self._log = new_log
 
-        return Ne
+        return NE
 
     def parse_command(self, cmd):
         """
@@ -413,38 +428,6 @@ class Node(object):
                 handle_fail(args)
             else:
                 print "[ERROR]: Command Type not correct. use 'schedules','cancels', or 'fail' "
-                pass
-
-        '''
-        import re
-        schedule_pattern = "user \d+ schedules appointment"
-        cancel_pattern = "user \d+ cancels appointment"
-        fail_pattern = "user \d+ (fails|crashes|goes down)$"
-
-
-        print "cmd:", cmd
-        if re.match(schedule_pattern, cmd):
-            handle_schedule(cmd)
-        elif re.match(cancel_pattern, cmd):
-            handle_cancel(cmd)
-        elif re.match(fail_pattern, cmd):
-            handle_fail(cmd)
-        else:
-            print "Invalid command: \"" + str(cmd) + "\""
-        '''
-
-    @staticmethod
-    def _using_conflict_resolution_protocol(message):
-        """Determine if messgae is from conflict resolution protocol."""
-        #pull partial log, 2DTT and sender id k from message m
-        NPk, Tk, k = message
-
-        #if any value is not 0, the message was sent through Wuu-Bernstein
-        for row in Tk:
-            for element in row:
-                if element != 0:
-                    return False
-        return True
 
 def client_thread(conn, Node):
     """."""
@@ -464,13 +447,41 @@ def client_thread(conn, Node):
         #calendar
         from copy import deepcopy
         pre_dict = deepcopy(Node._calendar)
-        dict_entries = Node.receive(data)
-        #Get the appointments in new dictionary not in old dictionary
-        new_entries = [entry for entry in dict_entries if entry not in pre_dict.values()]
+        NE = Node.receive(data)
+        #Get the appointments in new dictionary not in old dictionary that aren't deletes
+        new_entries = [event for event in NE if event._op_params not in pre_dict.values() and event._op != r"DELETE"]
+
         #for each new appointment entry, if it's conflicting, handle it 
-        for entry in new_entries:
-            if Node._is_calendar_conflicting(entry, pre_dict):
-                Node._handle_conflict(entry)
+        for new_event in new_entries:
+            #get the appointment for the new_event
+            new_appt = new_event._op_params
+            #if the appointment is conflicting with the dictionary before receive, we have a conflict
+            if Node._is_calendar_conflicting(new_appt, pre_dict):
+                #get original and new Appointments of the conflicting pair
+                original_appt = Node._get_conflicting_appointment(pre_dict, new_appt)
+
+                original_event = None
+
+                #for every entry in our log
+                for event in Node._log:
+                    #if the entry is the insert event corresponding to the original appointment,
+                    #save copy of the original event
+                    if event._op == "INSERT" and event._op_params == original_appt:
+                        original_event = event
+
+                if not original_event:
+                    Node._handle_conflict(new_appt)
+                else:
+                    oR_id = original_event._node_id
+                    nR_id = new_event._node_id
+
+                    if Node._T[Node._id][oR_id] < Node._T[Node._id][nR_id]:
+                        Node._handle_conflict(new_appt)
+                    elif Node._T[Node._id][oR_id] > Node._T[Node._id][nR_id]:
+                        Node._handle_conflict(original_appt)
+                    else:
+                        Node._handle_conflict(original_appt)
+                        Node._handle_conflict(new_appt)
 
 
         conn.send(b'ACK ' + data)
@@ -489,10 +500,10 @@ def main():
     cmd3 = "user1 schedules new (user0,user1,user2,user3) (1:00pm,1:30pm) Thursday"
     '''
     
-    Virginia_IP = "52.91.70.98"
-    Oregon_IP = "52.88.140.4"
-    California_IP = "54.67.83.210"
-    Ireland_IP = "52.17.138.211"
+    Virginia_IP = "54.86.48.150"
+    Oregon_IP = "52.88.56.96"
+    California_IP = "52.8.78.117"
+    Ireland_IP = "52.17.233.99"
 
     #init IP's of different regions
     ids_to_IPs = {
