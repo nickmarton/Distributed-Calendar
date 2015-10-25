@@ -432,7 +432,7 @@ class Node(object):
 def client_thread(conn, Node):
     """."""
     while 1:
-        data = conn.recv(2048)
+        data = conn.recv(8192)
 
         if not data:
             print("Ended connection")
@@ -450,6 +450,7 @@ def client_thread(conn, Node):
         NE = Node.receive(data)
         #Get the appointments in new dictionary not in old dictionary that aren't deletes
         new_entries = [event for event in NE if event._op_params not in pre_dict.values() and event._op != r"DELETE"]
+        new_entries = [event for event in new_entries if event._op_params in Node._calendar.values()]
 
         #for each new appointment entry, if it's conflicting, handle it 
         for new_event in new_entries:
@@ -459,6 +460,9 @@ def client_thread(conn, Node):
             if Node._is_calendar_conflicting(new_appt, pre_dict):
                 #get original and new Appointments of the conflicting pair
                 original_appt = Node._get_conflicting_appointment(pre_dict, new_appt)
+
+                print str(original_appt._name) + '\t' + str(new_appt._name)
+                print str(new_event)
 
                 original_event = None
 
@@ -480,11 +484,10 @@ def client_thread(conn, Node):
                     elif Node._T[Node._id][oR_id] > Node._T[Node._id][nR_id]:
                         Node._handle_conflict(original_appt)
                     else:
-                        Node._handle_conflict(original_appt)
-                        Node._handle_conflict(new_appt)
+                        pass
 
 
-        conn.send(b'ACK ' + data)
+        #conn.send(b'ACK ' + data)
     conn.close()
 
 def main():
@@ -497,7 +500,7 @@ def main():
     cmd1 = "user1 cancels yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
     cmd2 = "user1 schedules just_guys (user0,user1,user2,user3) (1:00am,6:30am) Tuesday"
     cmd3 = "user1 schedules test (user1,user2,user3) (3:00am,6:00am) Tuesday"
-    cmd3 = "user1 schedules new (user0,user1,user2,user3) (1:00pm,1:30pm) Thursday"
+    cmd3 = "user1 schedules new (user0,user1,user2,user3) (1:00pm,1:30pm) Monday"
     '''
     
     Virginia_IP = "54.86.48.150"
@@ -512,7 +515,7 @@ def main():
         2: (California_IP, 9002), 
         3: (Ireland_IP, 9003)}
 
-    N = Node(node_id=0, node_count=4, ids_to_IPs=ids_to_IPs)
+    N = Node(node_id=int(sys.argv[1]), node_count=4, ids_to_IPs=ids_to_IPs)
 
     #try to load a previous state of this Node
     try:
@@ -521,7 +524,7 @@ def main():
         pass
 
     HOST = "0.0.0.0"
-    PORT = int(sys.argv[1])
+    PORT = int(sys.argv[2])
 
     #bind to host of 0.0.0.0 for any TCP traffic through AWS
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
