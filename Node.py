@@ -52,21 +52,35 @@ class Node(object):
     def __str__(self):
         """Human readable string of this Node."""
         hr_str = ""
-        hr_str += "ID:" + str(self._id) + '\t\t' + str(type(self._id)) + '\n'
-        hr_str += "CLOCK: " + str(self._clock) + '\t' + str(type(self._clock)) + '\n'
+        hr_str += "ID:" + str(self._id) + '\n'
+        hr_str += "CLOCK: " + str(self._clock) + '\n'
         hr_str += "CALENDAR:\n"
         for k,v in self._calendar.iteritems():
-            hr_str += "\tAPPOINTMENT:" + k + '\t' + str(type(v)) + '\n'
+            hr_str += "\tAPPOINTMENT:" + k + '\n'
         hr_str += "LOG:\n"
         for eR in self._log:
-            hr_str += '\t' + str(eR) + '\t' + str(type(eR)) + '\n'
+            hr_str += '\t' + str(eR) + '\n'
 
         hr_str += "TIME TABLE:\n"
         for row in self._T:
             hr_str += '\t' + str(row) + '\n'
-        hr_str += "NODE COUNT:" + str(self._node_count) + '\n'
+
         return hr_str
     
+    def print_log(self):
+        """Print log of this Node object."""
+        hr_str = "LOG:\n"
+        for eR in self._log:
+            hr_str += '\t' + str(eR) + '\n'
+        return hr_str
+
+    def print_calendar(self):
+        """Print calendar of this Node object."""
+        hr_str = "CALENDAR:\n"
+        for k,v in self._calendar.iteritems():
+            hr_str += str(v) + '\n'
+        return hr_str
+
     def hasRec(self, eR, k):
         """
         hasRec predicate presented in paper.
@@ -105,21 +119,6 @@ class Node(object):
                 return True
 
         return False
-
-    @staticmethod
-    def _get_conflicting_appointment(calendar, X):
-        """
-        Assuming a conflicting appointment, return the Appointment object
-        conflicting with X in calendar.
-        """
-
-        #for each appointment in the calendar
-        for name, appointment in calendar.iteritems():
-            #if any appointment conflicts with new appointment X, they conflict
-            if is_appointments_conflicting(appointment, X):
-                return appointment
-
-        raise KeyError(str(X) + " does not conflict with any Appointment.") 
 
     def _is_in_calendar(self, X):
         """
@@ -429,8 +428,23 @@ class Node(object):
             else:
                 print "[ERROR]: Command Type not correct. use 'schedules','cancels', or 'fail' "
 
+    @staticmethod
+    def _get_conflicting_appointment(calendar, X):
+        """
+        Assuming a conflicting appointment, return the Appointment object
+        conflicting with X in calendar.
+        """
+
+        #for each appointment in the calendar
+        for name, appointment in calendar.iteritems():
+            #if any appointment conflicts with new appointment X, they conflict
+            if is_appointments_conflicting(appointment, X):
+                return appointment
+
+        raise KeyError(str(X) + " does not conflict with any Appointment.") 
+
 def client_thread(conn, Node):
-    """."""
+    """Handle conflict detection and do receive."""
     while 1:
         data = conn.recv(8192)
 
@@ -490,17 +504,22 @@ def client_thread(conn, Node):
         #conn.send(b'ACK ' + data)
     conn.close()
 
+def clear_console():
+    """Clear output console."""
+    for i in range(50):
+        print
+
 def main():
     """Main method; listener for input housed here."""
 
     '''
-    cmd1 = "user1 schedules yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
-    cmd2 = "user1 schedules gay (user0,user1,user2,user3) (4:00pm,6:00pm) Sunday"
-    cmd2 = "user1 schedules straight (user0,user1,user2,user3) (2:00pm,4:00pm) Sunday"
-    cmd1 = "user1 cancels yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
-    cmd2 = "user1 schedules just_guys (user0,user1,user2,user3) (1:00am,6:30am) Tuesday"
-    cmd3 = "user1 schedules test (user1,user2,user3) (3:00am,6:00am) Tuesday"
-    cmd3 = "user1 schedules new (user0,user1,user2,user3) (1:00pm,1:30pm) Monday"
+    cmd1 = "user1 schedules test1 (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
+    cmd2 = "user1 schedules test2 (user0,user1,user2,user3) (4:00pm,6:00pm) Sunday"
+    cmd2 = "user1 schedules test3 (user0,user1,user2,user3) (2:00pm,4:00pm) Sunday"
+    cmd1 = "user1 cancels test1 (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
+    cmd2 = "user1 schedules test4 (user0,user1,user2,user3) (1:00am,6:30am) Tuesday"
+    cmd3 = "user1 schedules test5 (user1,user2,user3) (3:00am,6:00am) Tuesday"
+    cmd3 = "user1 schedules test6 (user0,user1,user2,user3) (1:00pm,1:30pm) Monday"
     '''
     
     Virginia_IP = "54.86.48.150"
@@ -544,7 +563,13 @@ def main():
                 N._save_state()
                 break
             elif message == "log":
+                print N.print_log()
+            elif message == "calendar":
+                print N.print_calendar()
+            elif message == "print node":
                 print str(N)
+            elif message == "clear":
+                clear_console()
             else:
                 N.parse_command(message)
         else:
