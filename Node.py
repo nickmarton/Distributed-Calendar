@@ -86,14 +86,19 @@ class Node(object):
 
         return self._T[k][eR._node_id] >= eR._time
 
-    def _is_calendar_conflicting(self, X):
+    def _is_calendar_conflicting(self, X, other_calendar=None):
         """
         Determine if Appointment object X conflicts with some Appointment
         already in the calendar.
         """
 
+        if other_calendar:
+            calendar = other_calendar
+        else:
+            calendar = self._calendar
+
         #for each appointment in the calendar
-        for name, appointment in self._calendar.iteritems():
+        for name, appointment in calendar.iteritems():
             #if any appointment conflicts with new appointment X, they conflict
             if is_appointments_conflicting(appointment, X):
                 return True
@@ -327,6 +332,8 @@ class Node(object):
 
         self._log = new_log
 
+        return Ne
+
     def parse_command(self, cmd):
         """
         Parse schedule, cancel and fail commands.
@@ -452,7 +459,18 @@ def client_thread(conn, Node):
             conn.close()
             break
 
-        Node.receive(data)
+        #copy the calendar before receiving data i.e. redefining this Node's
+        #calendar
+        from copy import deepcopy
+        pre_dict = deepcopy(Node._calendar)
+        dict_entries = Node.receive(data)
+        #Get the appointments in new dictionary not in old dictionary
+        new_entries = [entry for entry in dict_entries if entry not in pre_dict.values()]
+        #for each new appointment entry, if it's conflicting, handle it 
+        for entry in new_entries:
+            if Node._is_calendar_conflicting(entry, pre_dict):
+                Node._handle_conflict(entry)
+
 
         conn.send(b'ACK ' + data)
     conn.close()
@@ -462,22 +480,25 @@ def main():
 
     '''
     cmd1 = "user1 schedules yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
-    cmd1 = "user1 cancels yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
     cmd2 = "user1 schedules gay (user0,user1,user2,user3) (4:00pm,6:00pm) Sunday"
-    cmd3 = "user1 schedules test (user0,user1,user2,user3) (4:00pm,6:00pm) Thursday"
+    cmd2 = "user1 schedules straight (user0,user1,user2,user3) (2:00pm,4:00pm) Sunday"
+    cmd1 = "user1 cancels yaboi (user0,user1,user2,user3) (4:00pm,6:00pm) Friday"
+    cmd2 = "user1 schedules just_guys (user0,user1,user2,user3) (1:00am,6:30am) Tuesday"
+    cmd3 = "user1 schedules test (user1,user2,user3) (3:00am,6:00am) Tuesday"
+    cmd3 = "user1 schedules new (user0,user1,user2,user3) (1:00pm,1:30pm) Thursday"
     '''
     
-    Virginia_IP = "52.91.185.160"
-    Oregon_IP = "52.27.242.30"
-    California_IP = "54.153.45.240"
-    Ireland_IP = "52.18.115.205"
+    Virginia_IP = "52.91.70.98"
+    Oregon_IP = "52.88.140.4"
+    California_IP = "54.67.83.210"
+    Ireland_IP = "52.17.138.211"
 
     #init IP's of different regions
     ids_to_IPs = {
         0: (Virginia_IP, 9000),
-        1: (Oregon_IP, 9001)}#,
-        #2: (California_IP, 9002), 
-        #3: (Ireland_IP, 9003)}
+        1: (Oregon_IP, 9001),
+        2: (California_IP, 9002), 
+        3: (Ireland_IP, 9003)}
 
     N = Node(node_id=0, node_count=4, ids_to_IPs=ids_to_IPs)
 

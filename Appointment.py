@@ -51,6 +51,10 @@ def is_appointments_conflicting(appt1, appt2):
     if not appt1_cond or not appt2_cond:
         raise TypeError("parameters must be of type Appointment")
 
+    #if they're the same appointment, they don't conflict
+    if appt1 == appt2:
+        return False
+
     #if appointments aren't on the same day, they don't conflict
     if appt1._day != appt2._day:
         return False
@@ -167,6 +171,10 @@ class Appointment(object):
             appointment_str += str(self._participants[0])
 
         return appointment_str
+
+    def __repr__(self):
+        """Convert event object to machine representation."""
+        return self.__str__()
 
 def main():
     """Method for testing; not executed unless 'usr$ python Appointment.py'."""
