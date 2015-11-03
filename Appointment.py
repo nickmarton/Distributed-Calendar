@@ -1,4 +1,6 @@
-"""Appointment class for Distributed Systems Project 1."""
+"""
+Appointment class for Distributed Calendar implemented with Wuu-Bernstein Algorithm.
+"""
 
 from datetime import time
 

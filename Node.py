@@ -1,4 +1,6 @@
-"""Node class for Distributed Systems Project 1."""
+"""
+Node class for Distributed Calendar implemented with Wuu-Bernstein Algorithm.
+"""
 
 import sys
 import socket
@@ -522,10 +524,10 @@ def main():
     cmd3 = "user1 schedules test6 (user0,user1,user2,user3) (1:00pm,1:30pm) Monday"
     '''
     
-    Virginia_IP = "54.86.48.150"
-    Oregon_IP = "52.88.56.96"
-    California_IP = "52.8.78.117"
-    Ireland_IP = "52.17.233.99"
+    Virginia_IP = "52.91.71.111"
+    Oregon_IP = "54.200.51.241"
+    California_IP = "52.8.87.23"
+    Ireland_IP = "52.16.157.196"
 
     #init IP's of different regions
     ids_to_IPs = {

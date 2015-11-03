@@ -1,4 +1,6 @@
-"""Event Record class for Distributed Systems Project 1."""
+"""
+Event Record class for Distributed Calendar implemented with Wuu-Bernstein Algorithm.
+"""
 
 from Appointment import Appointment
 
